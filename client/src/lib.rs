@@ -4,6 +4,7 @@ pub fn hello_world() {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     #[test]
     fn it_works() {
     }
