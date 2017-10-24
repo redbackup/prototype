@@ -1,0 +1,12 @@
+[package]
+name = "redbackup-management-cli"
+version = "0.1.0"
+authors = ["Raphael Zimmermann <dev@raphael.li>", "Fabian Hauser <fabian@fh2.ch>"]
+homepage = "https://www.redbackup.org/"
+license = "AGPL-3.0"
+
+[dependencies]
+
+[dependencies.redbackup-management]
+path = "../management"
+version = "0.1.0"

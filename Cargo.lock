@@ -7,10 +7,31 @@ name = "redbackup-client"
 version = "0.1.0"
 
 [[package]]
+name = "redbackup-client-cli"
+version = "0.1.0"
+dependencies = [
+ "redbackup-client 0.1.0",
+]
+
+[[package]]
 name = "redbackup-management"
 version = "0.1.0"
 
 [[package]]
+name = "redbackup-management-cli"
+version = "0.1.0"
+dependencies = [
+ "redbackup-management 0.1.0",
+]
+
+[[package]]
 name = "redbackup-node"
 version = "0.1.0"
+
+[[package]]
+name = "redbackup-node-cli"
+version = "0.1.0"
+dependencies = [
+ "redbackup-node 0.1.0",
+]
 

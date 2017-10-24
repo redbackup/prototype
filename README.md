@@ -18,8 +18,6 @@ $ cargo build --all
 
 The project ist structured in the form of a [cargo workspace](https://github.com/rust-lang/rfcs/blob/master/text/1525-cargo-workspace.md), which means that you can build and tests all module at once in the project root using the `--all` parameter.
 
-As for now, the `client`, `management` and `node` modules are both libraries and binaries. We might split them up in the future to improve maintainability.
-
 ## Development Guidelines
 
 The code must follow the most recent [Rust RFCs](https://aturon.github.io/) (naming conventions etc.)

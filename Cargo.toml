@@ -1,2 +1,2 @@
 [workspace]
-members = ["client", "node", "storage", "management"]
+members = ["client", "client-cli", "node", "node-cli", "storage", "management", "management-cli"]
