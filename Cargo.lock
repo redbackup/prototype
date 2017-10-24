@@ -1,0 +1,16 @@
+[root]
+name = "redbackup-storage"
+version = "0.1.0"
+
+[[package]]
+name = "redbackup-client"
+version = "0.1.0"
+
+[[package]]
+name = "redbackup-management"
+version = "0.1.0"
+
+[[package]]
+name = "redbackup-node"
+version = "0.1.0"
+
