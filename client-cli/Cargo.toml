@@ -6,6 +6,8 @@ homepage = "https://www.redbackup.org/"
 license = "AGPL-3.0"
 
 [dependencies]
+clap = "2.27.1"
+version = "2.0.1"
 
 [dependencies.redbackup-client]
 path = "../client"
