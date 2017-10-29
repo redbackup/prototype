@@ -9,4 +9,3 @@ license = "AGPL-3.0"
 
 [dependencies.redbackup-management]
 path = "../management"
-version = "0.1.0"

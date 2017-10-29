@@ -9,4 +9,3 @@ license = "AGPL-3.0"
 
 [dependencies.redbackup-node]
 path = "../node"
-version = "0.1.0"
