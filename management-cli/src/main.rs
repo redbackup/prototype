@@ -1,15 +1,14 @@
 extern crate redbackup_management;
-extern crate clap;
 #[macro_use]
-extern crate version;
+extern crate clap;
 
 use clap::App;
 
 fn main() {
     App::new("redbackup management-cli")
-       .version(version!())
        .about("redbackup management server")
-       .author("Fabian Hauser & Raphael Zimmermann")
+        .version(crate_version!())
+        .author(crate_authors!())
        .get_matches();
     redbackup_management::hello_world()
 }
