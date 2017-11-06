@@ -1,0 +1,31 @@
+version: "3"
+services:
+  nodeA:
+    image: redbackup/node:latest
+    networks:
+      - redbackup
+  nodeB:
+    image: redbackup/node:latest
+    networks:
+      - redbackup
+  nodeC:
+    image: redbackup/node:latest
+    networks:
+      - redbackup
+  client1:
+    image: redbackup/client:latest
+    networks:
+      - redbackup
+    command: nodeB
+  client2:
+    image: redbackup/client:latest
+    networks:
+      - redbackup
+    command: nodeA
+  client3:
+    image: redbackup/client:latest
+    networks:
+      - redbackup
+    command: nodeC
+networks:
+  redbackup:

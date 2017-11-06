@@ -13,7 +13,7 @@ tokio-proto = "0.1"
 tokio-service = "0.1"
 quick-error = "1.2.1"
 chrono = "0.4"
-
+dns-lookup = "0.8.1"
 
 [dependencies.redbackup-protocol]
 path = "../protocol"

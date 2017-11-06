@@ -6,19 +6,32 @@ use std::process;
 
 use redbackup_client::config::{Config, ParseError};
 
-use clap::App;
+use clap::{App, Arg};
 
 
 fn main() {
-    App::new("redbackup client-cli")
+    let matches = App::new("redbackup client-cli")
         .about("redbackup client")
         .version(crate_version!())
         .author(crate_authors!())
+         .arg(
+            Arg::with_name("node-hostname")
+                .help("hostname of the node to contact")
+                .default_value("localhost"),
+        )
+        .arg(
+            Arg::with_name("node-port")
+                .help("port of the node to contact")
+                .default_value("8080"),
+        )
         .get_matches();
 
-    let config = Config::new("0.0.0.0", "8080").unwrap_or_else(|err| {
+    let node_host = matches.value_of("node-hostname").unwrap();
+    let node_port = matches.value_of("node-port").unwrap();
+
+    let config = Config::new(node_host, node_port).unwrap_or_else(|err| {
         match err {
-            ParseError::InvalidIp(err) => eprintln!("The given IP could not be parsed ({})", err),
+            ParseError::InvalidHostname(err) => eprintln!("The given hostname is invalid ({})", err),
             ParseError::InvalidPort(err) => {
                 eprintln!("The given Port could not be parsed ({})", err)
             }
