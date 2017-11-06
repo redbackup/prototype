@@ -23,7 +23,7 @@ pub struct GetDesignation {
 }
 
 impl GetDesignation {
-    pub fn new(estimate_size: u32, expiration_date: DateTime<Utc>) -> Message {
+    pub fn new(estimate_size: u64, expiration_date: DateTime<Utc>) -> Message {
         Message {
             timestamp: Utc::now(),
             body: MessageKind::GetDesignation(GetDesignation {
