@@ -18,7 +18,7 @@ pub enum MessageKind {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GetDesignation {
-    estimate_size: u32,
+    estimate_size: u64,
     expiration_date: DateTime<Utc>,
 }
 
