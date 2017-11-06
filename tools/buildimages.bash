@@ -4,9 +4,6 @@ set -eux
 # cd into the project root
 cd "$(dirname "$0")/.."
 
-# build everything
-cargo build --all --release
-
 # Evaluate the current version
 VERSION="$(git describe --tags)"
 

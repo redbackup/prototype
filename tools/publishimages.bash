@@ -4,10 +4,6 @@ set -eu
 # cd into the directory, in which this script is stored
 cd "$(dirname "$0")"
 
-# Build everything
-./buildimages.bash
-
-
 # Evaluate the current version
 VERSION="$(git describe --tags)"
 
