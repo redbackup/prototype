@@ -67,18 +67,9 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Message>> {
 pub fn encode(msg: Message, buf: &mut BytesMut) -> io::Result<()> {
     serde_json::to_string(&msg)
         .map(|raw| {
-            push(buf, raw.as_bytes());
-            ()
+            buf.put(raw.as_bytes())
         })
         .map_err(|err| io::Error::new(io::ErrorKind::Other, err))
-}
-
-fn push(buf: &mut BytesMut, data: &[u8]) {
-    buf.reserve(data.len());
-    unsafe {
-        buf.bytes_mut()[..data.len()].copy_from_slice(data);
-        buf.advance_mut(data.len());
-    }
 }
 
 #[cfg(test)]
