@@ -19,7 +19,7 @@ fn main() {
         .arg(
             Arg::with_name("port")
                 .help("IP to bind")
-                .default_value("12345"),
+                .default_value("8080"),
         )
         .get_matches();
 
