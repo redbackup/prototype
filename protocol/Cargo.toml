@@ -1,21 +1,18 @@
 [package]
-name = "redbackup-node"
+name = "redbackup-protocol"
 version = "0.1.0"
 authors = ["Raphael Zimmermann <dev@raphael.li>", "Fabian Hauser <fabian@fh2.ch>"]
 homepage = "https://www.redbackup.org/"
 license = "AGPL-3.0"
 
 [dependencies]
-futures = "0.1"
+bytes = "0.4"
+futures = "0.1.11"
+tokio-core = "0.1.0"
 tokio-io = "0.1"
-tokio-core = "0.1"
 tokio-proto = "0.1"
 tokio-service = "0.1"
-quick-error = "1.2.1"
-chrono = { version = "0.4", features = ["serde"] }
 serde_derive = "1.0.16"
 serde = "1.0.16"
 serde_json = "1.0.5"
-
-[dependencies.redbackup-protocol]
-path = "../protocol"
+chrono = { version = "0.4", features = ["serde"] }
