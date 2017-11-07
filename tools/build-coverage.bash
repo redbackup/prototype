@@ -5,5 +5,5 @@ export LANG=C.UTF-8
 
 cargo tarpaulin -v -o Xml
 mkdir -p target/cov/
+pycobertura show --format html --output target/cov/coverage.html cobertura.xml
 mv cobertura.xml target/cov/
-pycobertura show --format html --output target/cov/coverage.html target/cov/cobertura.xml
