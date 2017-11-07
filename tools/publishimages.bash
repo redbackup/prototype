@@ -8,7 +8,7 @@ cd "$(dirname "$0")"
 VERSION="$(git describe --tags)"
 
 # Login to the docker registry
-docker login -u ${bamboo.dockercloud.username} -p ${bamboo.dockercloud.password}
+docker login -u "$bamboo_dockercloud_username" -p "$bamboo_dockercloud_password"
 
 # Push all tags
 docker push "redbackup/client:$VERSION"
