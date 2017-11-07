@@ -20,7 +20,7 @@ run_minimal () {
     # TODO: Verify that replication is completed
 
     # Stop the nodes
-    docker-compose -f docker/docker-compose.medium.yml -p "medium-$TAG" down
+    docker-compose -f docker/docker-compose.minimal.yml -p "minimal-$TAG" down
 }
 
 
