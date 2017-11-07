@@ -1,29 +1,29 @@
 version: "3"
 services:
   nodeA:
-    image: redbackup/node:latest
+    image: redbackup/node:${TAG}
     networks:
       - redbackup
   nodeB:
-    image: redbackup/node:latest
+    image: redbackup/node:${TAG}
     networks:
       - redbackup
   nodeC:
-    image: redbackup/node:latest
+    image: redbackup/node:${TAG}
     networks:
       - redbackup
   client1:
-    image: redbackup/client:latest
+    image: redbackup/client:${TAG}
     networks:
       - redbackup
     command: nodeB
   client2:
-    image: redbackup/client:latest
+    image: redbackup/client:${TAG}
     networks:
       - redbackup
     command: nodeA
   client3:
-    image: redbackup/client:latest
+    image: redbackup/client:${TAG}
     networks:
       - redbackup
     command: nodeC

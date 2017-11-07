@@ -3,9 +3,9 @@ set -e
 
 run_minimal () {
     set -ux
-
-    # Build everything
-    ./buildimages.bash
+    
+    # The tag of the images used for this run
+    export TAG="$(git describe --tags)"
 
     # Start the nodes
     docker-compose -f docker/docker-compose.minimal.yml up -d nodeA nodeB
@@ -26,9 +26,9 @@ run_minimal () {
 
 run_medium () {
     set -ux
-
-    # Build everything
-    ./buildimages.bash
+        
+    # The tag of the images used for this run
+    export TAG="$(git describe --tags)"
 
     # Start the nodes
     docker-compose -f docker/docker-compose.medium.yml up -d nodeA nodeB nodeC

@@ -13,8 +13,6 @@ docker login -u ${bamboo.dockercloud.username} -p ${bamboo.dockercloud.password}
 # Push all tags
 docker push "redbackup/client:$VERSION"
 docker push "redbackup/node:$VERSION"
-docker push "redbackup/client:latest"
-docker push "redbackup/node:latest"
 
 # Logount from the docker registry
 docker logout
