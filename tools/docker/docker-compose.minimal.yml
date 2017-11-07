@@ -3,15 +3,15 @@ services:
   nodeA:
     image: redbackup/node:${TAG}
     networks:
-      - redbackup
+      - redbackup_minimal
   nodeB:
     image: redbackup/node:${TAG}
     networks:
-      - redbackup
+      - redbackup_minimal
   client1:
     image: redbackup/client:${TAG}
     networks:
-      - redbackup
+      - redbackup_minimal
     command: nodeA
 networks:
-  redbackup:
+  redbackup_minimal:

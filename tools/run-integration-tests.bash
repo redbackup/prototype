@@ -8,19 +8,19 @@ run_minimal () {
     export TAG="$(git describe --tags)"
 
     # Start the nodes
-    docker-compose -f docker/docker-compose.minimal.yml up -d nodeA nodeB
+    docker-compose -f docker/docker-compose.minimal.yml -p "minimal-$TAG" up -d nodeA nodeB
 
     # Wait a moment - hopefully until the nodes are ready
     sleep 5
 
     # Start a client
     # TODO: Actually do sometihg - e.g. make a backup
-    docker-compose -f docker/docker-compose.minimal.yml up client1
+    docker-compose -f docker/docker-compose.minimal.yml -p "minimal-$TAG" up client1
 
     # TODO: Verify that replication is completed
 
     # Stop the nodes
-    docker-compose -f docker/docker-compose.minimal.yml stop nodeA nodeB
+    docker-compose -f docker/docker-compose.minimal.yml -p "minimal-$TAG" stop nodeA nodeB
 }
 
 
@@ -31,19 +31,19 @@ run_medium () {
     export TAG="$(git describe --tags)"
 
     # Start the nodes
-    docker-compose -f docker/docker-compose.medium.yml up -d nodeA nodeB nodeC
+    docker-compose -f docker/docker-compose.medium.yml -p "medium-$TAG" up -d nodeA nodeB nodeC
 
     # Wait a moment - hopefully until the nodes are ready
     sleep 5
 
     # Start the clients
     # TODO: Actually do sometihg - e.g. make a backup
-    docker-compose -f docker/docker-compose.medium.yml up client1 client2 client3
+    docker-compose -f docker/docker-compose.medium.yml -p "medium-$TAG" up client1 client2 client3
 
     # TODO: Verify that replication is completed
 
     # Stop the nodes
-    docker-compose -f docker/docker-compose.medium.yml stop nodeA nodeB nodeC
+    docker-compose -f docker/docker-compose.medium.yml -p "medium-$TAG" stop nodeA nodeB nodeC
 }
 
 # cd into the directory, in which this script is stored
