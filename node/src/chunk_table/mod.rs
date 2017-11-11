@@ -38,12 +38,11 @@ pub struct ChunkTable {
 }
 
 impl ChunkTable {
-
     fn new(database_url: &str) -> Result<Self, DatabaseError>{
         let config = Config::default();
         let manager = ConnectionManager::<SqliteConnection>::new(database_url);
-        let db_pool = Pool::new(config, manager)?;//.map_err(|e| PoolInitializationError(e))?;
-        let conn = db_pool.get()?;//.map_err(|e| ConnectionError(e))?;
+        let db_pool = Pool::new(config, manager)?;
+        let conn = db_pool.get()?;
 
         embedded_migrations::run(&*conn)?;
 
@@ -52,7 +51,6 @@ impl ChunkTable {
 
     fn get_chunk(&self, _chunk_identifier: &str) -> Result<Chunk, DatabaseError>{
         let conn = self.db_pool.get()?;
-
         chunks.find(_chunk_identifier).first(&*conn).map_err(|e| DatabaseError::from(e))
     }
 
@@ -91,7 +89,6 @@ impl ChunkTable {
         };
 
         diesel::insert(&new_chunk).into(chunks::table).execute(&*conn)?;
-
         chunks.find(_chunk_identifier).first::<Chunk>(&*conn).map_err(|e| DatabaseError::from(e))
     }
 
@@ -105,8 +102,9 @@ mod tests {
     #[allow(unused_must_use)] // as we are not interested in the result of fs::remove_file
     fn _prepare_chunk_table(test_name: &str) -> ChunkTable {
         let database_url = format!("{}/test-database-node-{}.db", env!("OUT_DIR"), test_name);
-        fs::remove_file(&database_url);
         println!("Database file: {}", &database_url);
+
+        fs::remove_file(&database_url);
         ChunkTable::new(&database_url).expect("Chunk table could not be created")
     }
 
