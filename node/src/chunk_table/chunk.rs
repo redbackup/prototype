@@ -1,7 +1,7 @@
 use super::schema::*;
 use chrono::prelude::*;
 
-#[derive(Queryable)]
+#[derive(Queryable,PartialEq,Debug)]
 pub struct Chunk {
     pub chunk_identifier: String,
 //    expiration_date: DateTime<Utc>,
