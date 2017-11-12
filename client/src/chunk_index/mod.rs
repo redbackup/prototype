@@ -11,12 +11,9 @@ use self::snapshot::Snapshot;
 use self::schema::snapshots;
 use self::schema::snapshots::dsl::*;
 
-use self::chunk::Chunk;
-use self::schema::chunks;
-use self::schema::chunks::dsl::*;
-
 mod snapshot;
 mod chunk;
+mod snapshotchunk;
 mod schema;
 #[cfg(test)] mod tests;
 
@@ -57,31 +54,15 @@ impl ChunkIndex {
         Ok(ChunkIndex { db_pool })
     }
 
-    fn add_snapshot(&self, _creation_date: NaiveDateTime) -> Result<Snapshot,DatabaseError> {
+    fn add_snapshot(&self, _creation_date: NaiveDateTime, _expiration_date: NaiveDateTime) -> Result<Snapshot,DatabaseError> {
         let conn = self.db_pool.get()?;
         let new_snapshot = Snapshot {
             uuid: Uuid::new_v4().hyphenated().to_string(),
             creation_date: _creation_date,
+            expiration_date: _expiration_date,
         };
 
         diesel::insert(&new_snapshot).into(snapshots::table).execute(&*conn)?;
         snapshots.find(&new_snapshot.uuid).first::<Snapshot>(&*conn).map_err(|e| DatabaseError::from(e))
     }
-
-
-    fn add_or_update_chunk(&self, chunk: &Chunk) -> Result<Chunk,DatabaseError> {
-        let conn = self.db_pool.get()?;
-        //TODO: Snapshot - chunk relation is not that easy...
-        if let Ok(existing_chunk) = chunks.find((&chunk.file, &chunk.chunk_identifier)).first::<Chunk>(&*conn) {
-            if existing_chunk.expiration_date < chunk.expiration_date {
-                diesel::update(chunk).set(expiration_date.eq(chunk.expiration_date))
-                    .execute(&*conn)?;
-            }
-        } else {
-            diesel::insert(chunk).into(chunks::table).execute(&*conn)?;
-        }
-
-        chunks.find((&chunk.file, &chunk.chunk_identifier)).first::<Chunk>(&*conn).map_err(|e| DatabaseError::from(e))
-    }
-
 }
