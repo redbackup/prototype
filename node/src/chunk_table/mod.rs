@@ -10,7 +10,7 @@ mod chunk;
 mod schema;
 #[cfg(test)] mod tests;
 
-use self::chunk::{Chunk,NewChunk};
+use self::chunk::Chunk;
 use self::schema::chunks;
 
 embed_migrations!("migrations");
@@ -82,8 +82,8 @@ impl ChunkTable {
     pub fn add_chunk(&self, chunk_identifier: &str,
                  expiration_date: NaiveDateTime, root_handle: bool) -> Result<Chunk, DatabaseError>{
         let conn = self.db_pool.get()?;
-        let new_chunk = NewChunk {
-            chunk_identifier: chunk_identifier,
+        let new_chunk = Chunk {
+            chunk_identifier: String::from(chunk_identifier),
             expiration_date: expiration_date,
             root_handle: root_handle,
         };
@@ -91,6 +91,5 @@ impl ChunkTable {
         diesel::insert(&new_chunk).into(chunks::table).execute(&*conn)?;
         chunks::dsl::chunks.find(chunk_identifier).first::<Chunk>(&*conn).map_err(|e| DatabaseError::from(e))
     }
-
 }
 
