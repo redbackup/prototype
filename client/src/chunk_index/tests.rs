@@ -37,7 +37,8 @@ fn _prepare_one_chunk(chunk_index: &ChunkIndex, snapshot: &Snapshot) -> Chunk {
         chunk_identifier: String::from("7fcaddc8772aaa616f43361c217c23d308e933465b2099d00ba1418fec1839f2"),
     };
 
-    snapshot.add_chunk(&chunk_index, &expected_chunk).expect("Chunk could not be added");
+    let add_chunk = snapshot.add_chunk(&chunk_index, &expected_chunk);
+    assert!(add_chunk.is_ok());
     
     expected_chunk
 }
