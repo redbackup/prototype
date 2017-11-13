@@ -1,0 +1,31 @@
+version: "2"
+services:
+  nodeA:
+    image: redbackup/node:${TAG}
+    networks:
+      - redbackup_medium
+  nodeB:
+    image: redbackup/node:${TAG}
+    networks:
+      - redbackup_medium
+  nodeC:
+    image: redbackup/node:${TAG}
+    networks:
+      - redbackup_medium
+  client1:
+    image: redbackup/client:${TAG}
+    networks:
+      - redbackup_medium
+    command: nodeB
+  client2:
+    image: redbackup/client:${TAG}
+    networks:
+      - redbackup_medium
+    command: nodeA
+  client3:
+    image: redbackup/client:${TAG}
+    networks:
+      - redbackup_medium
+    command: nodeC
+networks:
+  redbackup_medium:

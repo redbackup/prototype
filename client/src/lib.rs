@@ -10,6 +10,7 @@ extern crate chrono;
 extern crate uuid;
 extern crate r2d2;
 extern crate r2d2_diesel;
+extern crate dns_lookup;
 
 extern crate redbackup_protocol;
 
