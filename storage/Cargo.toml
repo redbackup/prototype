@@ -6,3 +6,5 @@ homepage = "https://www.redbackup.org/"
 license = "AGPL-3.0"
 
 [dependencies]
+log = "0.3.8"
+quick-error = "1.2.1"
