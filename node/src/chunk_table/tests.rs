@@ -14,7 +14,7 @@ fn _prepare_chunk_table(test_name: &str) -> ChunkTable {
 }
 
 fn _prepare_one_chunk(chunk_table: &ChunkTable) -> Chunk {
-    // Note that tests might depend on these concrete values!
+    // Note that tests depend on these concrete values!
     let identifier = String::from("7fcaddc8772aaa616f43361c217c23d308e933465b2099d00ba1418fec1839f2");
     let date = NaiveDate::from_ymd(2014, 11, 28).and_hms_milli(7, 8, 9, 10);
     let expected_chunk = Chunk {
@@ -48,6 +48,8 @@ fn remove_chunk() {
 
     let removed = chunk_table.remove_chunk(&expected_chunk.chunk_identifier).expect("Could not remove chunk");
     assert_eq!(removed, 1);
+    let get_chunk_result = chunk_table.get_chunk(&expected_chunk.chunk_identifier);
+    assert!(get_chunk_result.is_err());
 }
 
 #[test]
@@ -71,7 +73,7 @@ fn update_chunk() {
         root_handle: true,
     };
 
-    let updated_chunk = chunk_table.update_chunk(&original_chunk.chunk_identifier, date, true).expect("Could not remove chunk");
+    let updated_chunk = chunk_table.update_chunk(&original_chunk.chunk_identifier, date, false).expect("Could not remove chunk");
     assert_eq!(expected_chunk, updated_chunk);
 }
 

@@ -39,7 +39,7 @@ pub struct ChunkTable {
 }
 
 impl ChunkTable {
-    fn new(database_url: &str) -> Result<Self, DatabaseError>{
+    pub fn new(database_url: &str) -> Result<Self, DatabaseError>{
         let config = Config::default();
         let manager = ConnectionManager::<SqliteConnection>::new(database_url);
         let db_pool = Pool::new(config, manager)?;
@@ -50,17 +50,17 @@ impl ChunkTable {
         Ok(ChunkTable { db_pool })
     }
 
-    fn get_chunk(&self, _chunk_identifier: &str) -> Result<Chunk, DatabaseError>{
+    pub fn get_chunk(&self, _chunk_identifier: &str) -> Result<Chunk, DatabaseError>{
         let conn = self.db_pool.get()?;
         chunks.find(_chunk_identifier).first(&*conn).map_err(|e| DatabaseError::from(e))
     }
 
-    fn remove_chunk(&self, _chunk_identifier: &str) -> Result<usize, DatabaseError>{
+    pub fn remove_chunk(&self, _chunk_identifier: &str) -> Result<usize, DatabaseError>{
         let conn = self.db_pool.get()?;
         diesel::delete(chunks.find(_chunk_identifier)).execute(&*conn).map_err(|e| DatabaseError::from(e))
     }
     
-    fn update_chunk(&self, _chunk_identifier: &str,
+    pub fn update_chunk(&self, _chunk_identifier: &str,
                     _expiration_date: NaiveDateTime, _root_handle: bool) -> Result<Chunk, DatabaseError>{
         let conn = self.db_pool.get()?;
         conn.transaction::<_, DatabaseError, _>( || {
@@ -80,7 +80,7 @@ impl ChunkTable {
             })
     }
 
-    fn add_chunk(&self, _chunk_identifier: &str,
+    pub fn add_chunk(&self, _chunk_identifier: &str,
                  _expiration_date: NaiveDateTime, _root_handle: bool) -> Result<Chunk, DatabaseError>{
         let conn = self.db_pool.get()?;
         let new_chunk = NewChunk {
