@@ -1,5 +1,5 @@
 FROM debian:jessie
 
-ADD target/release/redbackup-node-cli /usr/bin/redbackup-node
+ADD target/release/redbackup-node-cli /usr/local/bin/redbackup-node
 
-ENTRYPOINT [ "/usr/bin/redbackup-node" ]
+ENTRYPOINT [ "/usr/local/bin/redbackup-node" ]
