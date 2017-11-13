@@ -9,7 +9,6 @@ use uuid::Uuid;
 
 use self::snapshot::Snapshot;
 use self::schema::snapshots;
-use self::schema::snapshots::dsl::*;
 
 mod snapshot;
 mod chunk;
@@ -54,15 +53,15 @@ impl ChunkIndex {
         Ok(ChunkIndex { db_pool })
     }
 
-    fn add_snapshot(&self, _creation_date: NaiveDateTime, _expiration_date: NaiveDateTime) -> Result<Snapshot,DatabaseError> {
+    fn add_snapshot(&self, creation_date: NaiveDateTime, expiration_date: NaiveDateTime) -> Result<Snapshot,DatabaseError> {
         let conn = self.db_pool.get()?;
         let new_snapshot = Snapshot {
             uuid: Uuid::new_v4().hyphenated().to_string(),
-            creation_date: _creation_date,
-            expiration_date: _expiration_date,
+            creation_date,
+            expiration_date,
         };
 
         diesel::insert(&new_snapshot).into(snapshots::table).execute(&*conn)?;
-        snapshots.find(&new_snapshot.uuid).first::<Snapshot>(&*conn).map_err(|e| DatabaseError::from(e))
+        snapshots::dsl::snapshots.find(&new_snapshot.uuid).first::<Snapshot>(&*conn).map_err(|e| DatabaseError::from(e))
     }
 }
