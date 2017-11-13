@@ -24,11 +24,5 @@ r2d2-diesel = "0.16.0"
 [dependencies.redbackup-protocol]
 path = "../protocol"
 
-[dependencies.redbackup-database-helpers]
-path = "../database-helpers"
-
 [build-dependencies]
 diesel = { version = "0.16.0", features = ["sqlite"] }
-
-[build-dependencies.redbackup-database-helpers]
-path = "../database-helpers"

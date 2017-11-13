@@ -1,10 +1,28 @@
-extern crate redbackup_database_helpers;
+extern crate diesel;
 
 use std::env;
 
-use redbackup_database_helpers::build_sqlite;
+use self::diesel::prelude::*;
+use self::diesel::migrations;
+use self::diesel::sqlite::SqliteConnection;
 
 fn main() {
+    prepare_inference_database();
+}
+
+/// Prepares a SQLITE database file with migrations to allow schema inference.during build.
+///
+/// This satisfies the DATABASE_FILE env required by `src/chunk_table/schema.rs`
+fn prepare_inference_database() {
+    // Requires OUT_DIR set by the cargo build environment. It contains the build target directory.
     let database_file = format!("{}/database-node.db", env::var("OUT_DIR").unwrap());
-    build_sqlite::build_database_env(&database_file);
+
+    let connection = SqliteConnection::establish(&database_file)
+        .expect(&format!("Build Database Error: Connecting to {} failed", database_file));
+
+    migrations::run_pending_migrations(&connection)
+        .expect("Build Database Error: Migrations unsuccessful");
+
+    println!("cargo:rustc-env=DATABASE_FILE={}", database_file);
+
 }

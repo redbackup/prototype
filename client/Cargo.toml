@@ -23,11 +23,5 @@ dns-lookup = "0.8.1"
 [dependencies.redbackup-protocol]
 path = "../protocol"
 
-[dependencies.redbackup-database-helpers]
-path = "../database-helpers"
-
 [build-dependencies]
-diesel = { version = "0.16.0", features = ["sqlite"] }
-
-[build-dependencies.redbackup-database-helpers]
-path = "../database-helpers"
+diesel = { version = "0.16.0", features = ["sqlite", "chrono"] }
