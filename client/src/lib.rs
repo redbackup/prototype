@@ -5,6 +5,7 @@ extern crate tokio_proto;
 extern crate tokio_service;
 extern crate tokio_core;
 extern crate chrono;
+extern crate dns_lookup;
 
 pub mod config;
 
