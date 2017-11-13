@@ -14,7 +14,7 @@ fn main() {
 ///
 /// This satisfies the DATABASE_FILE env required by `src/chunk_index/schema.rs`
 fn prepare_inference_database() {
-    / Requires OUT_DIR env set by the cargo build environment. It contains the build target directory.
+    // Requires OUT_DIR env set by the cargo build environment. It contains the build target directory.
     let database_file = format!("{}/database-client.db", env::var("OUT_DIR").unwrap());
 
     let connection = SqliteConnection::establish(&database_file)
