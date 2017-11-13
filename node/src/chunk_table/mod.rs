@@ -12,7 +12,6 @@ mod schema;
 
 use self::chunk::{Chunk,NewChunk};
 use self::schema::chunks;
-use self::schema::chunks::dsl::*;
 
 embed_migrations!("migrations");
 
@@ -50,47 +49,47 @@ impl ChunkTable {
         Ok(ChunkTable { db_pool })
     }
 
-    pub fn get_chunk(&self, _chunk_identifier: &str) -> Result<Chunk, DatabaseError>{
+    pub fn get_chunk(&self, chunk_identifier: &str) -> Result<Chunk, DatabaseError>{
         let conn = self.db_pool.get()?;
-        chunks.find(_chunk_identifier).first(&*conn).map_err(|e| DatabaseError::from(e))
+        chunks::dsl::chunks.find(chunk_identifier).first(&*conn).map_err(|e| DatabaseError::from(e))
     }
 
-    pub fn remove_chunk(&self, _chunk_identifier: &str) -> Result<usize, DatabaseError>{
+    pub fn remove_chunk(&self, chunk_identifier: &str) -> Result<usize, DatabaseError>{
         let conn = self.db_pool.get()?;
-        diesel::delete(chunks.find(_chunk_identifier)).execute(&*conn).map_err(|e| DatabaseError::from(e))
+        diesel::delete(chunks::dsl::chunks.find(chunk_identifier)).execute(&*conn).map_err(|e| DatabaseError::from(e))
     }
     
-    pub fn update_chunk(&self, _chunk_identifier: &str,
-                    _expiration_date: NaiveDateTime, _root_handle: bool) -> Result<Chunk, DatabaseError>{
+    pub fn update_chunk(&self, chunk_identifier: &str,
+                    expiration_date: NaiveDateTime, root_handle: bool) -> Result<Chunk, DatabaseError>{
         let conn = self.db_pool.get()?;
         conn.transaction::<_, DatabaseError, _>( || {
-            let chunk: Chunk = chunks.find(_chunk_identifier).first(&*conn)?;
+            let chunk: Chunk = chunks::dsl::chunks.find(chunk_identifier).first(&*conn)?;
 
-            let mut _expiration_date = _expiration_date;
-            if chunk.expiration_date > _expiration_date {
-                _expiration_date = chunk.expiration_date;
+            let mut expiration_date = expiration_date;
+            if chunk.expiration_date > expiration_date {
+                expiration_date = chunk.expiration_date;
             }
-            let _root_handle = chunk.root_handle || _root_handle;
+            let root_handle = chunk.root_handle || root_handle;
 
-            diesel::update(chunks.find(_chunk_identifier)).set((
-                    expiration_date.eq(_expiration_date),
-                    root_handle.eq(_root_handle)
+            diesel::update(chunks::dsl::chunks.find(chunk_identifier)).set((
+                    chunks::dsl::expiration_date.eq(expiration_date),
+                    chunks::dsl::root_handle.eq(root_handle)
                 )).execute(&*conn)?;
-                chunks.find(_chunk_identifier).first::<Chunk>(&*conn).map_err(|e| DatabaseError::from(e))
+                chunks::dsl::chunks.find(chunk_identifier).first::<Chunk>(&*conn).map_err(|e| DatabaseError::from(e))
             })
     }
 
-    pub fn add_chunk(&self, _chunk_identifier: &str,
-                 _expiration_date: NaiveDateTime, _root_handle: bool) -> Result<Chunk, DatabaseError>{
+    pub fn add_chunk(&self, chunk_identifier: &str,
+                 expiration_date: NaiveDateTime, root_handle: bool) -> Result<Chunk, DatabaseError>{
         let conn = self.db_pool.get()?;
         let new_chunk = NewChunk {
-            chunk_identifier: _chunk_identifier,
-            expiration_date: _expiration_date,
-            root_handle: _root_handle,
+            chunk_identifier: chunk_identifier,
+            expiration_date: expiration_date,
+            root_handle: root_handle,
         };
 
         diesel::insert(&new_chunk).into(chunks::table).execute(&*conn)?;
-        chunks.find(_chunk_identifier).first::<Chunk>(&*conn).map_err(|e| DatabaseError::from(e))
+        chunks::dsl::chunks.find(chunk_identifier).first::<Chunk>(&*conn).map_err(|e| DatabaseError::from(e))
     }
 
 }
