@@ -15,6 +15,7 @@ use super::schema::{chunks, snapshotchunks, snapshots};
 #[primary_key(uuid)]
 pub struct Snapshot {
     pub uuid: String, // TODO: Uuid?
+    // diesel currently not support DateTime<Utc> in SQLite, just NaiveDateTime.
     pub creation_date: NaiveDateTime,
     pub expiration_date: NaiveDateTime,
 }

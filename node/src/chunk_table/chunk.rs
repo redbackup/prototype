@@ -6,6 +6,7 @@ use chrono::prelude::*;
 #[primary_key(chunk_identifier)]
 pub struct Chunk {
     pub chunk_identifier: String,
+    // diesel currently not support DateTime<Utc> in SQLite, just NaiveDateTime.
     pub expiration_date: NaiveDateTime,
     pub root_handle: bool,
 }
