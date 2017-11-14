@@ -65,14 +65,14 @@ fn ensure_persisting_existing_chunk_fails() {
     let identifier = "c1fcd4dd4dc0ee9208d7b9c6608b91bde8eee91b09bc5b4928b9371d5bdab16d";
     storage.persist(identifier, &expected_data).unwrap();
     let err = storage.persist(identifier, &expected_data).unwrap_err();
-    assert_eq!(format!("{}", err), "Can not persist already existing chunk with identifier c1fcd4dd4dc0ee9208d7b9c6608b91bde8eee91b09bc5b4928b9371d5bdab16d");
+    assert_eq!(format!("{}", err), format!("Can not persist already existing chunk with identifier {}", identifier));
 }
 #[test]
 fn ensure_deleting_nonexisting_chunk_fails() {
     let storage = _setup_empty_storage("ensure_deleting_nonexisting_chunk_fails");
     let identifier = "c1fcd4dd4dc0ee9208d7b9c6608b91bde8eee91b09bc5b4928b9371d5bdab16d";
     let err = storage.delete(identifier).unwrap_err();
-    assert_eq!(format!("{}", err), "Can not delete non-existing chunk with identifier c1fcd4dd4dc0ee9208d7b9c6608b91bde8eee91b09bc5b4928b9371d5bdab16d");
+    assert_eq!(format!("{}", err), format!("Can not delete non-existing chunk with identifier {}", identifier));
 }
 
 #[test]
@@ -80,5 +80,5 @@ fn ensure_get_nonexisting_chunk_fails() {
     let storage = _setup_empty_storage("ensure_get_nonexisting_chunk_fails");
     let identifier = "c1fcd4dd4dc0ee9208d7b9c6608b91bde8eee91b09bc5b4928b9371d5bdab16d";
     let err = storage.get(identifier).unwrap_err();
-    assert_eq!(format!("{}", err), "The chunk with the identifier c1fcd4dd4dc0ee9208d7b9c6608b91bde8eee91b09bc5b4928b9371d5bdab16d is not persisted");
+    assert_eq!(format!("{}", err), format!("The chunk with the identifier {} is not persisted", identifier));
 }
