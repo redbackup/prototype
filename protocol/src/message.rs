@@ -10,16 +10,20 @@ pub struct Message {
     pub body: MessageKind,
 }
 
+
 #[derive(Serialize, Deserialize, Debug)]
 pub enum MessageKind {
     GetDesignation(GetDesignation),
     ReturnDesignation(ReturnDesignation),
+    InvalidRequest(InvalidRequest),
+    GetChunkStates(GetChunkStates),
+    ReturnChunkStates(ReturnChunkStates),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GetDesignation {
-    estimate_size: u64,
-    expiration_date: DateTime<Utc>,
+    pub estimate_size: u64,
+    pub expiration_date: DateTime<Utc>,
 }
 
 impl GetDesignation {
@@ -36,7 +40,7 @@ impl GetDesignation {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReturnDesignation {
-    designation: bool,
+    pub designation: bool,
 }
 
 impl ReturnDesignation {
@@ -45,6 +49,61 @@ impl ReturnDesignation {
             timestamp: Utc::now(),
             body: MessageKind::ReturnDesignation(ReturnDesignation {
                 designation,
+            }),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct InvalidRequest {
+    pub reason: String,
+}
+
+impl InvalidRequest {
+    pub fn new(reason: &str) -> Message {
+        Message {
+            timestamp: Utc::now(),
+            body: MessageKind::InvalidRequest(InvalidRequest{
+                reason: reason.into()
+            }),
+        }
+    }
+}
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ChunkElement {
+    pub chunk_identifier: String,
+    pub expiration_date: DateTime<Utc>,
+    pub root_handle: bool,
+}
+
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GetChunkStates {
+    pub chunks: Vec<ChunkElement>
+}
+
+impl GetChunkStates {
+    pub fn new(chunks: Vec<ChunkElement>) -> Message {
+        Message {
+            timestamp: Utc::now(),
+            body: MessageKind::GetChunkStates(GetChunkStates {
+                chunks
+            }),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ReturnChunkStates {
+    pub chunks: Vec<ChunkElement>
+}
+
+impl ReturnChunkStates {
+   pub fn new(chunks: Vec<ChunkElement>) -> Message {
+        Message {
+            timestamp: Utc::now(),
+            body: MessageKind::ReturnChunkStates(ReturnChunkStates {
+                chunks
             }),
         }
     }

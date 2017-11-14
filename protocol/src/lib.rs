@@ -14,6 +14,8 @@ pub mod message;
 use std::io;
 
 pub use message::Message;
+pub use message::MessageKind;
+
 
 use bytes::BytesMut;
 use tokio_io::codec::{Encoder, Decoder, Framed};
