@@ -1,20 +1,24 @@
-CREATE TABLE snapshots (
-    uuid TEXT NOT NULL PRIMARY KEY,
-    creation_date DATETIME NOT NULL,
-    expiration_date DATETIME NOT NULL
+CREATE TABLE folders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    name TEXT NOT NULL,
+    parent_folder INTEGER,
+    FOREIGN KEY(parent_folder) REFERENCES folders(id)
+);
+
+CREATE TABLE files (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    name TEXT NOT NULL,
+    last_change_date DATETIME NOT NULL,
+    folder INTEGER NOT NULL,
+    FOREIGN KEY(folder) REFERENCES folders(id)
 );
 
 CREATE TABLE chunks (
-    file_name TEXT NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     chunk_identifier TEXT NOT NULL,
-    PRIMARY KEY(file_name,chunk_identifier)
-);
-
-CREATE TABLE snapshotchunks (
-    snapshot_uuid TEXT NOT NULL,
-    file_name TEXT NOT NULL,
-    chunk_identifier TEXT NOT NULL,
-    PRIMARY KEY(snapshot_uuid, chunk_identifier, file_name),
-    FOREIGN KEY(snapshot_uuid) REFERENCES snapshots(uuid),
-    FOREIGN KEY(snapshot_uuid, file_name) REFERENCES snapshots(uuid,file_name)
+    file INTEGER NOT NULL,
+    predecessor INTEGER,
+    UNIQUE(file,chunk_identifier),
+    FOREIGN KEY(file) REFERENCES files(id),
+    FOREIGN KEY(predecessor) REFERENCES chunks(id)
 );
