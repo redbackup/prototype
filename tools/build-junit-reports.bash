@@ -4,7 +4,11 @@ set -ux
 REPORTS_DIR="target/reports/"
 
 mkdir -p "$REPORTS_DIR"
-cargo test --all
+cargo test --all ${@:1}
+
+echo "Skipping creating of JUnit reports - since cargo test-junit cannot handle igored tests..."
+exit 0
+
 # Loop over all folders in the cwd
 for d in */ ; do
     # Skip all directories that do not contain a crate...

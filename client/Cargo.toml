@@ -13,7 +13,15 @@ tokio-proto = "0.1"
 tokio-service = "0.1"
 quick-error = "1.2.1"
 chrono = "0.4"
+uuid = { version = "0.5", features = ["v4"] }
+diesel = { version = "0.16.0", features = ["sqlite", "chrono"] }
+diesel_codegen = { version = "0.16.0", features = ["sqlite"] }
+r2d2 = "0.7.4"
+r2d2-diesel = "0.16.0"
 dns-lookup = "0.8.1"
 
 [dependencies.redbackup-protocol]
 path = "../protocol"
+
+[build-dependencies]
+diesel = { version = "0.16.0", features = ["sqlite", "chrono"] }

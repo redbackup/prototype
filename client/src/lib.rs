@@ -1,13 +1,21 @@
-extern crate redbackup_protocol;
+#![recursion_limit="128"] // required for database inference
 #[macro_use] extern crate quick_error;
+#[macro_use] extern crate diesel;
+#[macro_use] extern crate diesel_codegen;
 extern crate futures;
 extern crate tokio_proto;
 extern crate tokio_service;
 extern crate tokio_core;
 extern crate chrono;
+extern crate uuid;
+extern crate r2d2;
+extern crate r2d2_diesel;
 extern crate dns_lookup;
 
+extern crate redbackup_protocol;
+
 pub mod config;
+mod chunk_index;
 
 use redbackup_protocol::RedClientProto;
 use redbackup_protocol::message::GetDesignation;
