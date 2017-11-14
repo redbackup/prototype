@@ -40,11 +40,13 @@ fn _prepare_chunk(chunk_index: &ChunkIndex, file: &File) -> Chunk {
 }
 
 #[test]
+#[ignore]
 fn create_chunk_index() {
     _prepare_chunk_index("create_chunk_index");
 }
 
 #[test]
+#[ignore]
 fn add_folders() {
     let chunk_index = _prepare_chunk_index("add_folder");
     let folder1 = _prepare_folder(&chunk_index);
@@ -58,6 +60,7 @@ fn add_folders() {
 }
 
 #[test]
+#[ignore]
 fn add_file() {
     let chunk_index = _prepare_chunk_index("add_file");
     let folder = _prepare_folder(&chunk_index);
@@ -65,6 +68,7 @@ fn add_file() {
 }
 
 #[test]
+#[ignore]
 fn add_chunks() {
     let chunk_index = _prepare_chunk_index("add_chunk");
     let folder = _prepare_folder(&chunk_index);

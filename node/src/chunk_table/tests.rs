@@ -31,17 +31,20 @@ fn _prepare_one_chunk(chunk_table: &ChunkTable) -> Chunk {
 
 
 #[test]
+#[ignore]
 fn create_chunk_table() {
     _prepare_chunk_table("create_chunk_table");
 }
 
 #[test]
+#[ignore]
 fn add_chunk() {
     let chunk_table = _prepare_chunk_table("add_chunk");
     _prepare_one_chunk(&chunk_table);
 }
 
 #[test]
+#[ignore]
 fn remove_chunk() {
     let chunk_table = _prepare_chunk_table("remove_chunk");
     let expected_chunk = _prepare_one_chunk(&chunk_table);
@@ -53,6 +56,7 @@ fn remove_chunk() {
 }
 
 #[test]
+#[ignore]
 fn get_chunk() {
     let chunk_table = _prepare_chunk_table("get_chunk");
     let expected_chunk = _prepare_one_chunk(&chunk_table);
@@ -62,6 +66,7 @@ fn get_chunk() {
 }
 
 #[test]
+#[ignore]
 fn update_chunk() {
     let chunk_table = _prepare_chunk_table("update_chunk");
     let original_chunk = _prepare_one_chunk(&chunk_table);
@@ -78,6 +83,7 @@ fn update_chunk() {
 }
 
 #[test]
+#[ignore]
 fn update_chunk_older_date() {
     let chunk_table = _prepare_chunk_table("update_chunk_older_date");
     let original_chunk = _prepare_one_chunk(&chunk_table);
