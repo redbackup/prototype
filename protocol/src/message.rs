@@ -16,6 +16,7 @@ pub enum MessageKind {
     GetDesignation(GetDesignation),
     ReturnDesignation(ReturnDesignation),
     InvalidRequest(InvalidRequest),
+    InternalError(InternalError),
     GetChunkStates(GetChunkStates),
     ReturnChunkStates(ReturnChunkStates),
 }
@@ -69,6 +70,23 @@ impl InvalidRequest {
         }
     }
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct InternalError {
+    pub reason: String,
+}
+
+impl InternalError {
+    pub fn new(reason: &str) -> Message {
+        Message {
+            timestamp: Utc::now(),
+            body: MessageKind::InternalError(InternalError{
+                reason: reason.into()
+            }),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ChunkElement {
     pub chunk_identifier: String,
