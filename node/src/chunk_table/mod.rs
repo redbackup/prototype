@@ -1,7 +1,6 @@
 use r2d2::{Config, Pool};
 use diesel::sqlite::SqliteConnection;
 use r2d2_diesel::ConnectionManager;
-use chrono::prelude::*;
 use self::diesel::prelude::*;
 use r2d2;
 use diesel;
@@ -53,7 +52,6 @@ impl ChunkTable {
         let db_pool = Pool::new(config, manager)?;
         let conn = db_pool.get()?;
         embedded_migrations::run(&*conn)?;
-
         Ok(ChunkTable { db_pool })
     }
 

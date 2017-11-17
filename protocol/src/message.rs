@@ -4,14 +4,14 @@ use bytes::{BufMut, BytesMut};
 use serde_json;
 use chrono::prelude::*;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Message {
     pub timestamp: DateTime<Utc>,
     pub body: MessageKind,
 }
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub enum MessageKind {
     GetDesignation(GetDesignation),
     ReturnDesignation(ReturnDesignation),
@@ -21,7 +21,7 @@ pub enum MessageKind {
     ReturnChunkStates(ReturnChunkStates),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct GetDesignation {
     pub estimate_size: u64,
     pub expiration_date: DateTime<Utc>,
@@ -39,7 +39,7 @@ impl GetDesignation {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct ReturnDesignation {
     pub designation: bool,
 }
@@ -55,7 +55,7 @@ impl ReturnDesignation {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct InvalidRequest {
     pub reason: String,
 }
@@ -71,7 +71,7 @@ impl InvalidRequest {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct InternalError {
     pub reason: String,
 }
@@ -87,7 +87,7 @@ impl InternalError {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct ChunkElement {
     pub chunk_identifier: String,
     pub expiration_date: DateTime<Utc>,
@@ -95,7 +95,7 @@ pub struct ChunkElement {
 }
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct GetChunkStates {
     pub chunks: Vec<ChunkElement>
 }
@@ -111,7 +111,7 @@ impl GetChunkStates {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct ReturnChunkStates {
     pub chunks: Vec<ChunkElement>
 }
