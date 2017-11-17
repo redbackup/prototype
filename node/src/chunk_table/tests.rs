@@ -23,7 +23,7 @@ fn _prepare_one_chunk(chunk_table: &ChunkTable) -> Chunk {
         root_handle: true,
     };
 
-    let added_chunk = chunk_table.add_chunk(&identifier, date, true).expect("Chunk could not be added");
+    let added_chunk = chunk_table.add_chunk(&expected_chunk).expect("Chunk could not be added");
     assert_eq!(expected_chunk, added_chunk);
     
     expected_chunk
@@ -78,7 +78,7 @@ fn update_chunk() {
         root_handle: true,
     };
 
-    let updated_chunk = chunk_table.update_chunk(&original_chunk.chunk_identifier, date, false).expect("Could not remove chunk");
+    let updated_chunk = chunk_table.update_chunk(&expected_chunk).expect("Could not remove chunk");
     assert_eq!(expected_chunk, updated_chunk);
 }
 
@@ -88,8 +88,12 @@ fn update_chunk_older_date() {
     let chunk_table = _prepare_chunk_table("update_chunk_older_date");
     let original_chunk = _prepare_one_chunk(&chunk_table);
 
-    let second_date = NaiveDate::from_ymd(1970, 1, 1).and_hms_milli(7, 8, 9, 10);
+    let second_chunk = Chunk {
+        chunk_identifier: original_chunk.chunk_identifier.clone(),
+        expiration_date: NaiveDate::from_ymd(1970, 1, 1).and_hms_milli(7, 8, 9, 10),
+        root_handle: false,
+    };
 
-    let updated_chunk = chunk_table.update_chunk(&original_chunk.chunk_identifier, second_date, false).expect("Could not remove chunk");
+    let updated_chunk = chunk_table.update_chunk(&second_chunk).expect("Could not remove chunk");
     assert_eq!(original_chunk, updated_chunk);
 }
