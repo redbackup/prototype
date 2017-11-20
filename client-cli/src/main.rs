@@ -74,7 +74,7 @@ fn main() {
         ("create", Some(matches_create)) => {
             let backup_dir = PathBuf::from(matches_create.value_of("local_backup_dir").unwrap());
              if !backup_dir.is_dir() {
-                eprintln!("The given Directory '{:?}' does not exist", backup_dir);
+                eprintln!("The given directory '{:?}' does not exist", backup_dir);
                 process::exit(1);
             }
 

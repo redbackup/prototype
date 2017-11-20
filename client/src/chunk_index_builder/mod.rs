@@ -39,32 +39,26 @@ fn add_path_recursive(pool: CpuPool,
                       parent_folder: Option<Folder>
                      ) -> Result<(), DatabaseError> {
     let folder = add_folder(&chunk_index, &folder_path, &parent_folder).expect("Could not add folder");
-/*    let mut subfolders = vec!();
-    let mut files = vec!();
-*/
+
     if let Ok(entries) = folder_path.read_dir() {
         for entry in entries.filter(|s| s.is_ok()).map(|s| s.unwrap()) {
             match entry.file_type() {
                 Ok(ref filetype) if filetype.is_file() => {
                     let chunk_index_clone = chunk_index.clone();
                     let folder_clone = folder.clone();
-//                    files.push(pool.spawn_fn(move||
                          add_file(chunk_index_clone, entry, folder_clone);
-//                    ));
                 },
 
                 Ok(ref filetype) if filetype.is_dir() => {
                     let pool_clone = pool.clone();
                     let chunk_index_clone = chunk_index.clone();
                     let folder_clone = folder.clone();
-//                    subfolders.push(pool.spawn_fn(move||
                         add_path_recursive(
                             pool_clone,
                             chunk_index_clone,
                             entry.path(),
                             Some(folder_clone)
                         );;
-//                    ));
                 },
 
                 Ok(filetype) => {
@@ -74,14 +68,6 @@ fn add_path_recursive(pool: CpuPool,
             }
         }
     }
-/*    for folder in subfolders {
-        folder.wait().expect("A subdirectory failed");
-    }
-
-    for file in files {
-        file.wait().expect("A file addition failed");
-    }
-*/
     Ok(())
 }
 
@@ -95,13 +81,10 @@ fn add_file(chunk_index: ChunkIndex, file_entry: DirEntry, parent_folder: Folder
         last_change_date: modified.naive_local(),
         folder: parent_folder.id,
     })?;
-    println!("File: {}", &file.name);
 
     let mut binary_file = fs::File::open(&file_entry.path())?;
     let hash = Sha256::digest_reader(&mut binary_file)?;
-    // create str representation from 
-    let hash = hash.iter().map(|e| format!("{:x}", e))
-        .flat_map(|s| s.chars().collect::<Vec<_>>()).collect();
+    let hash = hash.iter().map(|e| format!("{:x}", e)).flat_map(|s| s.chars().collect::<Vec<_>>()).collect();
 
     chunk_index.add_chunk(NewChunk{
         chunk_identifier: hash,
