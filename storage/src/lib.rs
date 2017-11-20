@@ -14,6 +14,7 @@ quick_error! {
     pub enum StorageError {
         IoError(err: std::io::Error) {
             from()
+            cause(err)
         }
         DeleteNonExistingChunk(identifier: String){
             description("Can not delete non-existing chunk")
@@ -30,9 +31,17 @@ quick_error! {
     }
 }
 
-
+#[derive(Debug)]
 pub struct Storage {
     location: PathBuf,
+}
+
+impl Clone for Storage {
+    fn clone(&self) -> Self {
+        Self {
+            location: self.location.clone(),
+        }
+    }
 }
 
 impl Storage {
