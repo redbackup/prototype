@@ -94,7 +94,7 @@ impl NodeService {
                 }
 
                 let chunk = Chunk::from(chunk_content);
-                let result = chunk_table.add_chunk(&chunk); // TODO: handle error...
+                let result = chunk_table.add_chunk(&chunk);
                 if let Ok(new_chunk) = result {
                     results.push(new_chunk);
                 } else {
