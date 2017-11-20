@@ -137,6 +137,17 @@ pub struct ChunkContentElement {
     pub chunk_content: Vec<u8>,
 }
 
+impl Into<ChunkElement> for ChunkContentElement {
+    fn into(self) -> ChunkElement{
+        ChunkElement {
+            chunk_identifier: self.chunk_identifier,
+            expiration_date: self.expiration_date,
+            root_handle: self.root_handle,
+        }
+    }
+}
+
+
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct PostChunks {
     pub chunks: Vec<ChunkContentElement>
