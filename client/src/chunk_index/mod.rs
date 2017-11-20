@@ -82,4 +82,10 @@ impl ChunkIndex {
             .filter(dsl::file.eq(new_chunk.file)).first::<Chunk>(&*conn)?;
         Ok(chunk)
     }
+
+    pub fn get_all_chunks(&self) -> Result<Vec<Chunk>, DatabaseError> {
+        let conn = self.db_pool.get()?;
+        self::chunks::table.load(&*conn).map_err(|e| DatabaseError::from(e))
+    }
+
 }
