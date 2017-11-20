@@ -21,12 +21,24 @@ fn main() {
                 .help("IP to bind")
                 .default_value("8080"),
         )
+        .arg(
+            Arg::with_name("storage-dir")
+                .help("path to the storage directory")
+                .default_value("./data/"),
+        )
+        .arg(
+            Arg::with_name("db-file")
+                .help("path to the database file")
+                .default_value("db.sqlite3"),
+        )
         .get_matches();
 
     let ip = matches.value_of("ip").unwrap();
     let port = matches.value_of("port").unwrap();
+    let storage_dir = matches.value_of("storage-dir").unwrap();
+    let db_file = matches.value_of("db-file").unwrap();
 
-    let conf = Config::new(ip, port).unwrap_or_else(|err| {
+    let conf = Config::new(ip, port, storage_dir, db_file).unwrap_or_else(|err| {
         match err {
             ParseError::InvalidIp(err) => eprintln!("The given IP could not be parsed ({})", err),
             ParseError::InvalidPort(err) => {

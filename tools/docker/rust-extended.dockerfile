@@ -16,7 +16,7 @@ RUN set -ex; \
     
 
 RUN pip3 install pycobertura
-RUN cargo install cargo-tarpaulin --vers 0.5.4
+RUN cargo install cargo-tarpaulin --vers 0.5.5
 RUN cargo install cargo-test-junit --vers 0.6.1
 RUN cargo install diesel_cli --vers 0.16.0 --no-default-features --features "sqlite"
 
