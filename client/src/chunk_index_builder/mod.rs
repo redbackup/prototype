@@ -5,7 +5,6 @@ use std::fs::DirEntry;
 use std::ffi::OsString;
 
 use chrono::prelude::*;
-use futures::Future;
 use futures_cpupool::CpuPool;
 use sha2::{Sha256,Digest};
 
@@ -16,20 +15,32 @@ use super::chunk_index::schema::{Folder, NewFolder, File, NewFile, NewChunk};
 quick_error! {
     #[derive(Debug)]
     pub enum BuildError {
-        DatabaseError(err: DatabaseError) { from() }
-        IoError(err: io::Error) { from() }
+        DatabaseError(err: DatabaseError) {
+            from()
+            cause(err)
+        }
+        IoError(err: io::Error) {
+            from()
+            cause(err)
+        }
+        OsStringError(err: OsString) {
+            from()
+            display("The path {:?} contains invalid unicode characters", err)
+        }
     }
 }
 
-pub fn build(config: &Config, backup_dir: PathBuf) -> Result<ChunkIndex, DatabaseError> {
+pub fn build(config: &Config, backup_dir: PathBuf) -> Result<ChunkIndex, BuildError> {
+    let pool = CpuPool::new_num_cpus();
+
     let datetime = Utc::now();
     let file_name = format!("{}/chunk_index-{}.db",
         config.chunk_index_storage.to_str().unwrap(),
         datetime.to_rfc3339());
     let chunk_index = ChunkIndex::new(&file_name, datetime)?;
-    let pool = CpuPool::new_num_cpus();
+    info!("Created chunk index {}", file_name);
 
-    add_path_recursive(pool, chunk_index.clone(), backup_dir, None).expect("Could not add path recursively");
+    add_path_recursive(pool, chunk_index.clone(), backup_dir, None)?;
     Ok(chunk_index)
 }
 
@@ -37,8 +48,8 @@ fn add_path_recursive(pool: CpuPool,
                       chunk_index: ChunkIndex,
                       folder_path: PathBuf,
                       parent_folder: Option<Folder>
-                     ) -> Result<(), DatabaseError> {
-    let folder = add_folder(&chunk_index, &folder_path, &parent_folder).expect("Could not add folder");
+                     ) -> Result<(), BuildError> {
+    let folder = add_folder(&chunk_index, &folder_path, &parent_folder)?;
 
     if let Ok(entries) = folder_path.read_dir() {
         for entry in entries.filter(|s| s.is_ok()).map(|s| s.unwrap()) {
@@ -46,25 +57,26 @@ fn add_path_recursive(pool: CpuPool,
                 Ok(ref filetype) if filetype.is_file() => {
                     let chunk_index_clone = chunk_index.clone();
                     let folder_clone = folder.clone();
-                         add_file(chunk_index_clone, entry, folder_clone);
+                     add_file(chunk_index_clone, entry, folder_clone)?;
                 },
 
                 Ok(ref filetype) if filetype.is_dir() => {
                     let pool_clone = pool.clone();
                     let chunk_index_clone = chunk_index.clone();
                     let folder_clone = folder.clone();
-                        add_path_recursive(
-                            pool_clone,
-                            chunk_index_clone,
-                            entry.path(),
-                            Some(folder_clone)
-                        );;
+                    add_path_recursive(
+                        pool_clone,
+                        chunk_index_clone,
+                        entry.path(),
+                        Some(folder_clone)
+                    )?;
                 },
 
                 Ok(filetype) => {
-                    unimplemented!("The file type {:?} is not implemented", filetype);
+                    error!("The file type {:?} of file {:?} is not implemented", filetype, entry.file_name());
                 },
-                _ => panic!("Could not read file type"),
+                _ => error!("Could not read file type of {:?}", entry.file_name()),
+                     // the file was probably deleted?
             }
         }
     }
@@ -72,12 +84,12 @@ fn add_path_recursive(pool: CpuPool,
 }
 
 fn add_file(chunk_index: ChunkIndex, file_entry: DirEntry, parent_folder: Folder) -> Result<File,BuildError> {
-    let metadata = file_entry.metadata().expect("Could not extract metadata");
-    let modified = metadata.modified().expect("could not read modification date");
+    let metadata = file_entry.metadata()?;
+    let modified = metadata.modified()?;
     let modified = DateTime::<Local>::from(modified);
 
     let file = chunk_index.add_file(NewFile {
-        name: file_entry.file_name().into_string().unwrap(),
+        name: file_entry.file_name().into_string()?,
         last_change_date: modified.naive_local(),
         folder: parent_folder.id,
     })?;
@@ -95,15 +107,15 @@ fn add_file(chunk_index: ChunkIndex, file_entry: DirEntry, parent_folder: Folder
     Ok(file)
 }
 
-fn add_folder(chunk_index: &ChunkIndex, folder_path: &PathBuf, parent_folder: &Option<Folder>) -> Result<Folder, DatabaseError> {
+fn add_folder(chunk_index: &ChunkIndex, folder_path: &PathBuf, parent_folder: &Option<Folder>) -> Result<Folder, BuildError> {
     chunk_index.add_folder(NewFolder {
         name: match folder_path.file_name() {
-            Some(name) => OsString::from(name).into_string().unwrap(),
+            Some(name) => OsString::from(name).into_string()?,
             None => String::new(),
         },
         parent_folder: match parent_folder {
             &Some(ref unwrapped_parent_folder) => Some(unwrapped_parent_folder.id),
             &None => None,
         }
-    })
+    }).map_err(|e| BuildError::from(e))
 }

@@ -2,6 +2,7 @@
 #[macro_use] extern crate quick_error;
 #[macro_use] extern crate diesel;
 #[macro_use] extern crate diesel_codegen;
+#[macro_use] extern crate log;
 extern crate futures;
 extern crate futures_cpupool;
 extern crate tokio_proto;
@@ -31,13 +32,24 @@ use futures::Future;
 use tokio_service::Service;
 use chrono::prelude::*;
 
-pub fn backup(config: config::Config, backup_dir: PathBuf) -> Result<(), io::Error> {
+quick_error!{
+    #[derive(Debug)]
+    pub enum BackupError {
+        DatabaseError(err: chunk_index_builder::BuildError) {
+            from()
+            cause(err)
+        }
+        IoError(err: io::Error) {
+            from()
+            cause(err)
+        }
+    }
+}
 
-    let _chunk_index = chunk_index_builder::build(&config, backup_dir)
-        .expect("Could not build chunk index!");
+pub fn backup(config: config::Config, backup_dir: PathBuf) -> Result<(), BackupError> {
 
+    let _chunk_index = chunk_index_builder::build(&config, backup_dir)?;
 
-    /*
     let mut event_loop = tokio_core::reactor::Core::new()?;
     let handle = event_loop.handle();
 
@@ -49,7 +61,5 @@ pub fn backup(config: config::Config, backup_dir: PathBuf) -> Result<(), io::Err
             client.call(req)
     }).map(|res| println!("res: {:?}", res));
 
-    event_loop.run(test)
-    */
-    Ok(())
+    event_loop.run(test).map_err(|e| BackupError::from(e))
 }
