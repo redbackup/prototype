@@ -7,8 +7,6 @@ use diesel;
 
 mod chunk;
 mod schema;
-#[cfg(test)]
-mod tests;
 
 pub use self::chunk::Chunk;
 use self::schema::chunks;
@@ -20,15 +18,19 @@ quick_error! {
     pub enum DatabaseError {
         PoolInitializationError(err: r2d2::InitializationError) {
             from()
+            cause(err)
         }
         ConnectionError(err: r2d2::GetTimeout) {
             from()
+            cause(err)
         }
         QueryError(err: diesel::result::Error) {
             from()
+            cause(err)
         }
         MigrationError(err: diesel::migrations::RunMigrationsError) {
             from()
+            cause(err)
         }
     }
 }
@@ -55,6 +57,7 @@ impl ChunkTable {
         Ok(ChunkTable { db_pool })
     }
 
+    #[allow(dead_code)]
     pub fn get_chunk(&self, chunk_identifier: &str) -> Result<Chunk, DatabaseError> {
         let conn = self.db_pool.get()?;
         chunks::dsl::chunks
@@ -63,6 +66,7 @@ impl ChunkTable {
             .map_err(|e| DatabaseError::from(e))
     }
 
+    #[allow(dead_code)]
     pub fn remove_chunk(&self, chunk_identifier: &str) -> Result<usize, DatabaseError> {
         let conn = self.db_pool.get()?;
         diesel::delete(chunks::dsl::chunks.find(chunk_identifier))
@@ -115,6 +119,7 @@ impl ChunkTable {
         }
         Ok(results)
     }
+
     pub fn add_chunk(&self, new_chunk: &Chunk) -> Result<Chunk, DatabaseError> {
         let conn = self.db_pool.get()?;
 
