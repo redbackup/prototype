@@ -17,7 +17,7 @@ fn main() {
          .arg(
             Arg::with_name("node-hostname")
                 .help("hostname of the node to contact")
-                .default_value("localhost"),
+                .default_value("0.0.0.0"),
         )
         .arg(
             Arg::with_name("node-port")
