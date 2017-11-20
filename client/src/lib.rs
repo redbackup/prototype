@@ -4,7 +4,6 @@
 #[macro_use] extern crate diesel_codegen;
 #[macro_use] extern crate log;
 extern crate futures;
-extern crate futures_cpupool;
 extern crate tokio_proto;
 extern crate tokio_service;
 extern crate tokio_core;
@@ -19,47 +18,10 @@ extern crate redbackup_protocol;
 
 pub mod config;
 mod chunk_index;
-mod chunk_index_builder;
+mod create;
 
-use redbackup_protocol::RedClientProto;
-use redbackup_protocol::message::GetDesignation;
-
-use std::io;
 use std::path::PathBuf;
 
-use tokio_proto::TcpClient;
-use futures::Future;
-use tokio_service::Service;
-use chrono::prelude::*;
-
-quick_error!{
-    #[derive(Debug)]
-    pub enum BackupError {
-        DatabaseError(err: chunk_index_builder::BuildError) {
-            from()
-            cause(err)
-        }
-        IoError(err: io::Error) {
-            from()
-            cause(err)
-        }
-    }
-}
-
-pub fn backup(config: config::Config, backup_dir: PathBuf) -> Result<(), BackupError> {
-
-    let _chunk_index = chunk_index_builder::build(&config, backup_dir)?;
-
-    let mut event_loop = tokio_core::reactor::Core::new()?;
-    let handle = event_loop.handle();
-
-    let test = TcpClient::new(RedClientProto)
-        .connect(&config.addr, &handle.clone())
-        .and_then(|client| {
-            let req = GetDesignation::new(1400, Utc::now());
-            println!("req: {:?}", req);
-            client.call(req)
-    }).map(|res| println!("res: {:?}", res));
-
-    event_loop.run(test).map_err(|e| BackupError::from(e))
+pub fn create(config: config::Config, backup_dir: PathBuf) -> Result<(), create::CreateError> {
+    create::run(config, backup_dir)
 }

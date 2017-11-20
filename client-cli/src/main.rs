@@ -78,7 +78,7 @@ fn main() {
                 process::exit(1);
             }
 
-            redbackup_client::backup(config, backup_dir).unwrap_or_else(|err| {
+            redbackup_client::create(config, backup_dir).unwrap_or_else(|err| {
                 eprintln!("Huston, we have a problem! ({})", err)
             });
         },
