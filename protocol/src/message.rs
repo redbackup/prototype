@@ -21,6 +21,8 @@ pub enum MessageKind {
     ReturnChunkStates(ReturnChunkStates),
     PostChunks(PostChunks),
     AcknowledgeChunks(AcknowledgeChunks),
+    GetRootHandles(GetRootHandles),
+    ReturnRootHandles(ReturnRootHandles),
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -159,6 +161,35 @@ impl PostChunks {
             timestamp: Utc::now(),
             body: MessageKind::PostChunks(PostChunks {
                 chunks
+            }),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct GetRootHandles {
+}
+
+impl GetRootHandles {
+   pub fn new() -> Message {
+        Message {
+            timestamp: Utc::now(),
+            body: MessageKind::GetRootHandles(GetRootHandles {}),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct ReturnRootHandles {
+    pub root_handle_chunks: Vec<ChunkContentElement>
+}
+
+impl ReturnRootHandles {
+   pub fn new(root_handle_chunks: Vec<ChunkContentElement>) -> Message {
+        Message {
+            timestamp: Utc::now(),
+            body: MessageKind::ReturnRootHandles(ReturnRootHandles {
+                root_handle_chunks
             }),
         }
     }
