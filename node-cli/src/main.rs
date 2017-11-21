@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate clap;
+extern crate env_logger;
 extern crate redbackup_node;
 
 use clap::{App, Arg};
@@ -48,5 +49,6 @@ fn main() {
         process::exit(1);
     });
 
+    env_logger::init().unwrap();
     redbackup_node::run(conf);
 }

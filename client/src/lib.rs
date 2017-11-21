@@ -2,6 +2,7 @@
 #[macro_use] extern crate quick_error;
 #[macro_use] extern crate diesel;
 #[macro_use] extern crate diesel_codegen;
+#[macro_use] extern crate log;
 extern crate futures;
 extern crate tokio_proto;
 extern crate tokio_service;
@@ -11,34 +12,16 @@ extern crate uuid;
 extern crate r2d2;
 extern crate r2d2_diesel;
 extern crate dns_lookup;
+extern crate sha2;
 
 extern crate redbackup_protocol;
 
 pub mod config;
+pub mod create;
 mod chunk_index;
 
-use redbackup_protocol::RedClientProto;
-use redbackup_protocol::message::GetDesignation;
+pub use create::config::{CreateConfig, CreateConfigError};
 
-use std::io;
-
-use tokio_proto::TcpClient;
-use futures::Future;
-use tokio_service::Service;
-use chrono::prelude::*;
-
-pub fn backup(config: config::Config) -> Result<(), io::Error> {
-    let mut event_loop = tokio_core::reactor::Core::new()?;
-    let handle = event_loop.handle();
-
-    let test = TcpClient::new(RedClientProto)
-        .connect(&config.addr, &handle.clone())
-        .and_then(|client| {
-            let req = GetDesignation::new(1400, Utc::now());
-            println!("req: {:?}", req);
-            client.call(req)
-    }).map(|res| println!("res: {:?}", res));
-
-    event_loop.run(test)
+pub fn create(config: config::Config, create_config: CreateConfig) -> Result<(), create::CreateError> {
+    create::run(config, create_config)
 }
-

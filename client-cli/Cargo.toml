@@ -6,6 +6,7 @@ homepage = "https://www.redbackup.org/"
 license = "AGPL-3.0"
 
 [dependencies]
+env_logger = "0.4.3"
 clap = "2.27.1"
 
 [dependencies.redbackup-client]

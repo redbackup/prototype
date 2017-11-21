@@ -7,6 +7,7 @@ license = "AGPL-3.0"
 
 [dependencies]
 futures = "0.1"
+futures-cpupool = "0.1.7"
 tokio-io = "0.1"
 tokio-core = "0.1"
 tokio-proto = "0.1"
@@ -19,6 +20,9 @@ diesel_codegen = { version = "0.16.0", features = ["sqlite"] }
 r2d2 = "0.7.4"
 r2d2-diesel = "0.16.0"
 dns-lookup = "0.8.1"
+sha2 = "0.7.0"
+digest = { version = "0.7.2", features = ["std"]}
+log = "0.3.8"
 
 [dependencies.redbackup-protocol]
 path = "../protocol"
