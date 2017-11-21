@@ -134,10 +134,25 @@ fn post_existing_chunks_in_db() {
         panic!("Expected AcknowledgeChunks message!");
     }
 }
+
 #[test]
 fn no_root_handles_if_none_present() {
     let service = ServiceUtils::service_for_test("no_root_handles_if_none_present");
 
+    let req_msg = GetRootHandles::new();
+    let res_msg = service.call(req_msg).wait().unwrap();
+
+    if let MessageKind::ReturnRootHandles(body) = res_msg.body {
+        assert_eq!(body.root_handle_chunks.len(), 0);
+    } else {
+        panic!("Expected ReturnRootHandles message! (Got: {:?})", res_msg.body);
+    }
+}
+
+#[test]
+fn load_all_root_handles() {
+    let service = ServiceUtils::service_for_test("load_all_root_handles");
+    // TODO: insert one and two
     let req_msg = GetRootHandles::new();
     let res_msg = service.call(req_msg).wait().unwrap();
 

@@ -90,7 +90,7 @@ impl ExampleChunkContentElement {
         Self::new(
             "a090165bdeced34bd9ba8f0aade9ffc8383c8cf7de862d34316e02b4ea2ea5a6",
             NaiveDate::from_ymd(2019, 1, 2).and_hms_milli(9, 2, 1, 5),
-            false,
+            true,
             vec![111, 114, 108, 100],
         )
     }
