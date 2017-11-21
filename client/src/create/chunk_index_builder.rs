@@ -101,7 +101,8 @@ impl ChunkIndexBuilder {
     }
 
     fn add_folder(&self, folder_path: &PathBuf) -> Result<Folder, BuilderError> {
-        let name =  OsString::from(folder_path.file_name()).into_string()?.unwrap();
+        let name = OsString::from(folder_path.file_name()
+           .ok_or(io::Error::new(io::ErrorKind::NotFound ,"No folder in path given"))?).into_string()?;
 
         let parent_folder = match self.parent_folder {
             Some(ref folder) => Some(folder.id),
