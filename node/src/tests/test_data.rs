@@ -15,15 +15,11 @@ impl ExampleChunk {
         )
     }
 
-    fn new(
-        chunk_identifier: &str,
-        expiration_date: NaiveDateTime,
-        root_handle: bool,
-    ) -> Chunk {
+    fn new(chunk_identifier: &str, expiration_date: NaiveDateTime, root_handle: bool) -> Chunk {
         Chunk {
             chunk_identifier: String::from(chunk_identifier),
             expiration_date,
-            root_handle
+            root_handle,
         }
     }
 }
@@ -32,28 +28,16 @@ pub struct ExampleChunkElement {}
 
 impl ExampleChunkElement {
     pub fn one() -> ChunkElement {
-        Self::new(
-            "7fcaddc8772aaa616f43361c217c23d308e933465b2099d00ba1418fec1839f2",
-            NaiveDate::from_ymd(2014, 11, 28).and_hms_milli(7, 8, 9, 10),
-            false,
-        )
+        Self::new(ExampleChunkContentElement::one())
     }
     pub fn two() -> ChunkElement {
-        Self::new(
-            "41dde6e18fb531600e631311242bdab0983776cae9a9a7383d9bc6622f2732a5",
-            NaiveDate::from_ymd(2019, 4, 10).and_hms_milli(9, 4, 5, 19),
-            false,
-        )
+        Self::new(ExampleChunkContentElement::two())
     }
-    fn new(
-        chunk_identifier: &str,
-        utc_expiration_date: NaiveDateTime,
-        root_handle: bool,
-    ) -> ChunkElement {
+    fn new(element: ChunkContentElement) -> ChunkElement {
         ChunkElement {
-            chunk_identifier: String::from(chunk_identifier),
-            expiration_date: DateTime::from_utc(utc_expiration_date, Utc),
-            root_handle,
+            chunk_identifier: element.chunk_identifier,
+            expiration_date: element.expiration_date,
+            root_handle: element.root_handle,
         }
     }
 }

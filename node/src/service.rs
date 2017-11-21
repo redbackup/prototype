@@ -11,8 +11,8 @@ use redbackup_protocol::{Message, MessageKind};
 use redbackup_storage::Storage;
 use chunk_table::{Chunk, ChunkTable};
 use redbackup_protocol::message::{AcknowledgeChunks, ChunkContentElement, ChunkElement,
-                                  GetChunkStates, InternalError, InvalidRequest, PostChunks,
-                                  ReturnChunkStates, ReturnDesignation};
+                                  GetChunkStates, GetChunks, InternalError, InvalidRequest,
+                                  PostChunks, ReturnChunkStates, ReturnChunks, ReturnDesignation};
 
 pub struct NodeService {
     pub cpu_pool: CpuPool,
@@ -29,8 +29,9 @@ impl Service for NodeService {
     fn call(&self, request: Message) -> Self::Future {
         match request.body {
             MessageKind::GetDesignation(_) => self.handle_designation(),
-            MessageKind::GetChunkStates(body) => self.handle_get_chunks(body),
+            MessageKind::GetChunkStates(body) => self.handle_get_chunk_states(body),
             MessageKind::PostChunks(body) => self.handle_post_chunks(body),
+            MessageKind::GetChunks(body) => self.handle_get_chunks(body),
             _ => self.handle_unknown(),
         }
     }
@@ -55,7 +56,7 @@ impl NodeService {
         Box::new(future::ok(ReturnDesignation::new(true)))
     }
 
-    fn handle_get_chunks(
+    fn handle_get_chunk_states(
         &self,
         body: GetChunkStates,
     ) -> Box<Future<Item = Message, Error = io::Error>> {
@@ -105,6 +106,41 @@ impl NodeService {
             Ok(AcknowledgeChunks::new(
                 results.into_iter().map(Chunk::into).collect(),
             ))
+        }))
+    }
+
+    fn handle_get_chunks(&self, body: GetChunks) -> Box<Future<Item = Message, Error = io::Error>> {
+        let chunk_table = self.chunk_table.clone();
+        let storage = self.storage.clone();
+
+        Box::new(self.cpu_pool.spawn_fn(move || -> Result<_, io::Error> {
+            let mut results = Vec::new();
+
+            for chunk_identifier in body.chunk_identifiers {
+                if let Ok(chunk) = chunk_table.get_chunk(&chunk_identifier) {
+                    let content;
+                    match storage.get(&chunk_identifier) {
+                        Err(err) => {
+                            warn!("Failed to load chunk: {:?}", err.description());
+                            continue;
+                        }
+                        Ok(it) => content = it,
+                    }
+
+                    let chunk_element = ChunkContentElement {
+                        chunk_identifier: chunk.chunk_identifier,
+                        expiration_date: DateTime::from_utc(chunk.expiration_date, Utc),
+                        root_handle: chunk.root_handle,
+                        chunk_content: content,
+                    };
+
+                    results.push(chunk_element);
+                } else {
+                    warn!("Failed to load chunk {}", chunk_identifier);
+                }
+            }
+
+            Ok(ReturnChunks::new(results))
         }))
     }
 }

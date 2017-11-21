@@ -3,7 +3,8 @@ use tokio_service::Service;
 use chrono::Utc;
 
 use redbackup_protocol::MessageKind;
-use redbackup_protocol::message::{GetDesignation, ReturnDesignation, GetChunkStates, PostChunks, ChunkElement};
+use redbackup_protocol::message::{ChunkElement, GetChunkStates, GetChunks, GetDesignation,
+                                  PostChunks, ReturnDesignation};
 
 use chunk_table::Chunk;
 
@@ -51,7 +52,7 @@ fn empty_set_of_chunk_results_in_empty_response() {
 #[test]
 fn ensure_existing_chunks_are_updated() {
     let service = ServiceUtils::service_for_test("ensure_existing_chunks_are_updated");
-    ServiceUtils::insert_and_verify(&service, ExampleChunkElement::one());
+    ServiceUtils::insert_and_verify(&service, ExampleChunkContentElement::one());
 
     let req_msg = GetChunkStates::new(vec![
         {
@@ -75,7 +76,8 @@ fn ensure_existing_chunks_are_updated() {
 
 #[test]
 fn empty_set_of_post_chunks_results_in_empty_response() {
-    let service = ServiceUtils::service_for_test("empty_set_of_post_chunks_results_in_empty_response");
+    let service =
+        ServiceUtils::service_for_test("empty_set_of_post_chunks_results_in_empty_response");
     let req_msg = PostChunks::new(Vec::new());
     let res_msg = service.call(req_msg).wait().unwrap();
 
@@ -115,10 +117,7 @@ fn post_non_existing_chunks() {
 #[test]
 fn post_existing_chunks_in_db() {
     let service = ServiceUtils::service_for_test("post_existing_chunks_in_db");
-    ServiceUtils::insert_and_verify(
-        &service,
-        ExampleChunkContentElement::one().into(),
-    );
+    ServiceUtils::insert_and_verify(&service, ExampleChunkContentElement::one().into());
 
     let req_msg = PostChunks::new(vec![
         ExampleChunkContentElement::one(),
@@ -128,9 +127,44 @@ fn post_existing_chunks_in_db() {
 
     if let MessageKind::AcknowledgeChunks(body) = res_msg.body {
         assert_eq!(body.chunks.len(), 1);
-        let expected : ChunkElement = ExampleChunkContentElement::two().into();
+        let expected: ChunkElement = ExampleChunkContentElement::two().into();
         assert_eq!(body.chunks[0], expected);
     } else {
         panic!("Expected AcknowledgeChunks message!");
+    }
+}
+
+#[test]
+fn empty_set_get_chunks_results_in_empty_response() {
+    let service = ServiceUtils::service_for_test("empty_set_get_chunks_results_in_empty_response");
+    let req_msg = GetChunks::new(Vec::new());
+    let res_msg = service.call(req_msg).wait().unwrap();
+
+    if let MessageKind::ReturnChunks(body) = res_msg.body {
+        assert_eq!(body.chunks.len(), 0)
+    } else {
+        panic!("Expected ReturnChunks message!");
+    }
+}
+
+#[test]
+fn get_chunks_returns_chunks() {
+    let service = ServiceUtils::service_for_test("get_chunks_returns_chunks");
+    ServiceUtils::insert_and_verify(&service, ExampleChunkContentElement::two().into());
+
+    let req_msg = GetChunks::new(vec![
+        ExampleChunkContentElement::one().chunk_identifier.into(),
+        ExampleChunkContentElement::two().chunk_identifier.into(),
+    ]);
+    let res_msg = service.call(req_msg).wait().unwrap();
+
+    if let MessageKind::ReturnChunks(body) = res_msg.body {
+        assert_eq!(body.chunks.len(), 1);
+        let expected = ExampleChunkContentElement::two();
+        assert_eq!(body.chunks[0], expected);
+
+
+    } else {
+        panic!("Expected ReturnChunks message!");
     }
 }
