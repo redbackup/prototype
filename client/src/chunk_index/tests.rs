@@ -82,3 +82,30 @@ fn add_chunks() {
     };
     chunk_index.add_chunk(chunk2).expect("Chunk could not be added");
 }
+
+
+#[test]
+#[ignore]
+fn get_all_chunks() {
+    let chunk_index = _prepare_chunk_index("get_all_chunks");
+    let folder = _prepare_folder(&chunk_index);
+    let file = _prepare_file(&chunk_index, &folder);
+    let chunk1 = _prepare_chunk(&chunk_index, &file);
+
+    let chunks = chunk_index.get_all_chunks().expect("Could not get all chunks");
+
+    assert_eq!(chunks, vec!(chunk1));
+}
+
+#[test]
+#[ignore]
+fn get_full_chunk_path(){
+    let chunk_index = _prepare_chunk_index("get_full_chunk_path");
+    let folder = _prepare_folder(&chunk_index);
+    let file = _prepare_file(&chunk_index, &folder);
+    let chunk1 = _prepare_chunk(&chunk_index, &file);
+
+    let path = chunk_index.get_full_chunk_path(chunk1.file).expect("Could not get full chunk paths");
+
+    assert_eq!(path, vec!(folder.name,file.name));
+}

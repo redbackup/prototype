@@ -91,16 +91,14 @@ impl ChunkIndex {
     pub fn get_full_chunk_path(&self, file_id: i32) -> Result<Vec<String>, DatabaseError> {
         use self::folders::dsl;
         use self::files;
-        let mut path = vec!();
-
         let conn = self.db_pool.get()?;
 
         let file = files::dsl::files.filter(files::dsl::id.eq(&file_id)).first::<File>(&*conn)?;
-        path.push(file.name.clone());
         let mut parent_id = file.folder;
+        let mut path = vec!(file.name.clone());
 
         loop {
-            let folder = dsl::folders.filter(dsl::id.eq(parent_id)).first::<Folder>(&*conn).expect("Woops");
+            let folder = dsl::folders.filter(dsl::id.eq(parent_id)).first::<Folder>(&*conn)?;
             path.push(folder.name.clone());
 
             if let Some(parent) = folder.parent_folder {
