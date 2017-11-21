@@ -19,6 +19,8 @@ pub enum MessageKind {
     AcknowledgeChunks(AcknowledgeChunks),
     GetRootHandles(GetRootHandles),
     ReturnRootHandles(ReturnRootHandles),
+    GetChunks(GetChunks),
+    ReturnChunks(ReturnChunks),
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -191,6 +193,38 @@ impl ReturnRootHandles {
     }
 }
 
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct GetChunks {
+    pub chunk_identifiers: Vec<String>,
+}
+
+impl GetChunks {
+   pub fn new(chunk_identifiers: Vec<String>) -> Message {
+        Message {
+            timestamp: Utc::now(),
+            body: MessageKind::GetChunks(GetChunks {
+                chunk_identifiers
+            }),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct ReturnChunks {
+    pub chunks: Vec<ChunkContentElement>
+}
+
+impl ReturnChunks {
+    pub fn new(chunks: Vec<ChunkContentElement>) -> Message {
+        Message {
+            timestamp: Utc::now(),
+            body: MessageKind::ReturnChunks(ReturnChunks {
+                chunks
+            }),
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct AcknowledgeChunks {
