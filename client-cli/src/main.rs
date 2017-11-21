@@ -1,9 +1,9 @@
 #[macro_use]
 extern crate clap;
+extern crate env_logger;
 extern crate redbackup_client;
 
 use std::process;
-use std::path::PathBuf;
 
 use redbackup_client::config::{Config, ParseError};
 use redbackup_client::{CreateConfig, CreateConfigError};
@@ -73,6 +73,7 @@ fn main() {
         process::exit(1);
     });
 
+    env_logger::init().unwrap();
 
     match matches.subcommand() {
         ("create", Some(matches_create)) => {
