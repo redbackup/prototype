@@ -1,3 +1,6 @@
 target/
 cobertura.xml
 coverage.html
+
+# Ignore git swap files
+*.swp
