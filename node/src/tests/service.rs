@@ -150,12 +150,16 @@ fn no_root_handles_if_none_present() {
 #[test]
 fn load_all_root_handles() {
     let service = ServiceUtils::service_for_test("load_all_root_handles");
-    // TODO: insert one and two
+    ServiceUtils::insert_and_verify(&service, ExampleChunkContentElement::one().into());
+    ServiceUtils::insert_and_verify(&service, ExampleChunkContentElement::two().into());
+
     let req_msg = GetRootHandles::new();
     let res_msg = service.call(req_msg).wait().unwrap();
 
     if let MessageKind::ReturnRootHandles(body) = res_msg.body {
-        assert_eq!(body.root_handle_chunks.len(), 0);
+        assert_eq!(body.root_handle_chunks.len(), 1);
+        let expected = ExampleChunkContentElement::two();
+        assert_eq!(body.root_handle_chunks[0], expected);
     } else {
         panic!("Expected ReturnRootHandles message! (Got: {:?})", res_msg.body);
     }

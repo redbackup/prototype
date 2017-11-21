@@ -113,8 +113,21 @@ impl NodeService {
         let storage = self.storage.clone();
 
         Box::new(self.cpu_pool.spawn_fn(move || -> Result<_, io::Error> {
-            let mut results = Vec::new();
-            Ok(ReturnRootHandles::new(results))
+            match chunk_table.get_root_handles() {
+                Ok(chunks) => {
+                    let chunks = chunks
+                        .into_iter()
+                        .map(|chunk| chunk_to_chunk_contents_element(chunk, &storage))
+                        .filter(|result| result.is_some())
+                        .map(|r| r.unwrap())
+                        .collect();
+                    Ok(ReturnRootHandles::new(chunks))
+                }
+                Err(err) => {
+                    let msg = format!("A DB issue has occured: {}", err);
+                    Ok(InternalError::new(&msg))
+                }
+            }
         }))
     }
     fn handle_get_chunks(&self, body: GetChunks) -> Box<Future<Item = Message, Error = io::Error>> {
@@ -125,23 +138,11 @@ impl NodeService {
             let mut results = Vec::new();
             for chunk_identifier in body.chunk_identifiers {
                 if let Ok(chunk) = chunk_table.get_chunk(&chunk_identifier) {
-                    let content;
-                    match storage.get(&chunk_identifier) {
-                        Err(err) => {
-                            warn!("Failed to load chunk: {:?}", err.description());
-                            continue;
-                        }
-                        Ok(it) => content = it,
+                    if let Some(chunk_content_element) =
+                        chunk_to_chunk_contents_element(chunk, &storage)
+                    {
+                        results.push(chunk_content_element);
                     }
-
-                    let chunk_element = ChunkContentElement {
-                        chunk_identifier: chunk.chunk_identifier,
-                        expiration_date: DateTime::from_utc(chunk.expiration_date, Utc),
-                        root_handle: chunk.root_handle,
-                        chunk_content: content,
-                    };
-
-                    results.push(chunk_element);
                 } else {
                     warn!("Failed to load chunk {}", chunk_identifier);
                 }
@@ -150,6 +151,22 @@ impl NodeService {
         }))
     }
 }
+
+fn chunk_to_chunk_contents_element(chunk: Chunk, storage: &Storage) -> Option<ChunkContentElement> {
+    match storage.get(&chunk.chunk_identifier) {
+        Err(err) => {
+            warn!("Failed to load chunk: {:?}", err.description());
+            None
+        }
+        Ok(content) => Some(ChunkContentElement {
+            chunk_identifier: chunk.chunk_identifier,
+            expiration_date: DateTime::from_utc(chunk.expiration_date, Utc),
+            root_handle: chunk.root_handle,
+            chunk_content: content,
+        }),
+    }
+}
+
 
 impl From<ChunkElement> for Chunk {
     fn from(other: ChunkElement) -> Self {
