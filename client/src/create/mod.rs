@@ -4,7 +4,6 @@ pub mod config;
 use std::io;
 use std::io::Read;
 use std::fs;
-use std::path::PathBuf;
 
 use tokio_core;
 use tokio_service::Service;
@@ -34,6 +33,10 @@ quick_error!{
             from()
             cause(err)
         }
+        DesignationNotGrantedError(node: String) {
+            description("Designation was not granted")
+            display("Designation was not granted by the node {}", node)
+        }
     }
 }
 
@@ -54,7 +57,6 @@ pub fn run(config: Config, create_config: config::CreateConfig) -> Result<(), Cr
     let chunks = chunk_index.get_all_chunks()?;
     let expiration_date_clone = create_config.expiration_date.clone();
 
-    let expiration_date_clone = expiration_date.clone();
     let chunk_elements = chunks.iter()
         .map(move|e|{
             ChunkElement {
@@ -64,7 +66,24 @@ pub fn run(config: Config, create_config: config::CreateConfig) -> Result<(), Cr
             }
         }).collect();
 
-    // TODO: Get deisgnation
+    let expiration_date_clone = create_config.expiration_date.clone();
+    let designation_request = TcpClient::new(RedClientProto)
+        .connect(&config.addr, &handle.clone())
+        .and_then(move|client| {
+            info!("Sending GetDesignation message");
+            client.call(GetDesignation::new(0, expiration_date_clone))
+        })
+        .map(|res| match res.body {
+            MessageKind::ReturnDesignation(body) => Some(body.designation),
+            _ => None,
+        }).map(|c| c.unwrap());
+    let designation = event_loop.run(designation_request).map_err(|e| CreateError::from(e))?;
+
+    if !designation {
+        CreateError::DesignationNotGrantedError(format!("{:?}", config.addr));
+    } else {
+        info!("Designation was granted by the node");
+    }
 
     let node_chunks_future = TcpClient::new(RedClientProto)
         .connect(&config.addr, &handle.clone())
@@ -84,11 +103,10 @@ pub fn run(config: Config, create_config: config::CreateConfig) -> Result<(), Cr
             .count() == 0
         });
     let remaining_chunks = remaining_chunks;
-    info!("{} of total {} chunks are not yet stored on the node", remaining_chunks.len(), chunks.len());
-    println!("{} of total {} chunks are not yet stored on the node", remaining_chunks.len(), chunks.len());
+    info!("{} of total {} chunks are already stored on the node", chunks.len() - remaining_chunks.len(), chunks.len());
 
     for chunk in remaining_chunks.iter() {
-        let mut path = backup_dir.clone();
+        let mut path = create_config.backup_dir.clone();
         path.pop();
         chunk_index.get_full_chunk_path(chunk.file)?.iter().for_each(|x| path.push(x));
         let path = path;
@@ -100,7 +118,7 @@ pub fn run(config: Config, create_config: config::CreateConfig) -> Result<(), Cr
 
         let chunk_content_element = ChunkContentElement{
             chunk_identifier: chunk.chunk_identifier.clone(),
-            expiration_date: expiration_date.clone(),
+            expiration_date: create_config.expiration_date.clone(),
             root_handle: false,
             chunk_content: buf,
         };

@@ -9,6 +9,9 @@ extern crate tokio_service;
 #[macro_use]
 extern crate serde_derive;
 
+#[macro_use]
+extern crate log;
+
 pub mod message;
 
 use std::io;
@@ -55,7 +58,13 @@ impl Decoder for RedCodec {
     type Error = io::Error;
 
     fn decode(&mut self, buf: &mut BytesMut) -> io::Result<Option<Message>> {
-        message::decode(buf)
+        info!("Started decoding message: {:?}", buf);
+        let m = message::decode(buf);
+        info!("Finished decoding message {:?}", m);
+        if let Err(error) = m {
+            return Ok(None)
+        }
+        m
     }
 }
 
