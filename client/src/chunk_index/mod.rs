@@ -7,7 +7,6 @@ use chrono::prelude::*;
 use diesel::prelude::*;
 
 pub mod schema;
-#[cfg(test)] mod tests;
 
 use self::schema::*;
 

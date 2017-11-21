@@ -16,6 +16,9 @@ extern crate sha2;
 
 extern crate redbackup_protocol;
 
+#[cfg(test)]
+mod tests;
+
 pub mod config;
 pub mod create;
 mod chunk_index;
