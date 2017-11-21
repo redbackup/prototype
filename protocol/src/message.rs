@@ -199,7 +199,7 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Message>> {
 pub fn encode(msg: Message, buf: &mut BytesMut) -> io::Result<()> {
     serde_json::to_string(&msg)
         .map(|raw| {
-            buf.put(raw.as_bytes())
+            buf.extend(raw.as_bytes())
         })
         .map_err(|err| io::Error::new(io::ErrorKind::Other, err))
 }
