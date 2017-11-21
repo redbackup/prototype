@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use futures_cpupool::CpuPool;
 
-use redbackup_protocol::message::{ChunkElement};
+use redbackup_protocol::message::ChunkContentElement;
 use redbackup_storage::Storage;
 
 use service::NodeService;
@@ -19,8 +19,9 @@ impl ServiceUtils {
         NodeService::new(cpu_pool, chunk_table, storage)
     }
 
-    pub fn insert_and_verify(service: &NodeService, element: ChunkElement) {
+    pub fn insert_and_verify(service: &NodeService, element: ChunkContentElement) {
         let chunk_table = service.chunk_table.clone();
+        service.storage.persist(&element.chunk_identifier, &element.chunk_content).unwrap();
         let new_chunk = element.into();
         assert_eq!(new_chunk, chunk_table.add_chunk(&new_chunk).unwrap());
     }

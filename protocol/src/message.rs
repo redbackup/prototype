@@ -21,6 +21,8 @@ pub enum MessageKind {
     ReturnChunkStates(ReturnChunkStates),
     PostChunks(PostChunks),
     AcknowledgeChunks(AcknowledgeChunks),
+    GetChunks(GetChunks),
+    ReturnChunks(ReturnChunks),
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -181,6 +183,37 @@ impl AcknowledgeChunks {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct GetChunks {
+    pub chunk_identifiers: Vec<String>,
+}
+
+impl GetChunks {
+   pub fn new(chunk_identifiers: Vec<String>) -> Message {
+        Message {
+            timestamp: Utc::now(),
+            body: MessageKind::GetChunks(GetChunks {
+                chunk_identifiers
+            }),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct ReturnChunks {
+    pub chunks: Vec<ChunkContentElement>
+}
+
+impl ReturnChunks {
+    pub fn new(chunks: Vec<ChunkContentElement>) -> Message {
+        Message {
+            timestamp: Utc::now(),
+            body: MessageKind::ReturnChunks(ReturnChunks {
+                chunks
+            }),
+        }
+    }
+}
 
 pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Message>> {
     let len = buf.len();
