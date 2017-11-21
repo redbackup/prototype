@@ -11,8 +11,9 @@ use redbackup_protocol::{Message, MessageKind};
 use redbackup_storage::Storage;
 use chunk_table::{Chunk, ChunkTable};
 use redbackup_protocol::message::{AcknowledgeChunks, ChunkContentElement, ChunkElement,
-                                  GetChunkStates, InternalError, InvalidRequest, PostChunks,
-                                  ReturnChunkStates, ReturnDesignation};
+                                  GetChunkStates, GetRootHandles, InternalError, InvalidRequest,
+                                  PostChunks, ReturnChunkStates, ReturnDesignation,
+                                  ReturnRootHandles};
 
 pub struct NodeService {
     pub cpu_pool: CpuPool,
@@ -31,6 +32,7 @@ impl Service for NodeService {
             MessageKind::GetDesignation(_) => self.handle_designation(),
             MessageKind::GetChunkStates(body) => self.handle_get_chunks(body),
             MessageKind::PostChunks(body) => self.handle_post_chunks(body),
+            MessageKind::GetRootHandles(_) => self.handle_return_root_handles(),
             _ => self.handle_unknown(),
         }
     }
@@ -105,6 +107,17 @@ impl NodeService {
             Ok(AcknowledgeChunks::new(
                 results.into_iter().map(Chunk::into).collect(),
             ))
+        }))
+    }
+
+
+    fn handle_return_root_handles(&self) -> Box<Future<Item = Message, Error = io::Error>> {
+        let chunk_table = self.chunk_table.clone();
+        let storage = self.storage.clone();
+
+        Box::new(self.cpu_pool.spawn_fn(move || -> Result<_, io::Error> {
+            let mut results = Vec::new();
+            Ok(ReturnRootHandles::new(results))
         }))
     }
 }

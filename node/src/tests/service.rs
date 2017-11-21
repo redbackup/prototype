@@ -3,7 +3,7 @@ use tokio_service::Service;
 use chrono::Utc;
 
 use redbackup_protocol::MessageKind;
-use redbackup_protocol::message::{GetDesignation, ReturnDesignation, GetChunkStates, PostChunks, ChunkElement};
+use redbackup_protocol::message::{GetDesignation, ReturnDesignation, GetChunkStates, PostChunks, ChunkElement, GetRootHandles};
 
 use chunk_table::Chunk;
 
@@ -132,5 +132,18 @@ fn post_existing_chunks_in_db() {
         assert_eq!(body.chunks[0], expected);
     } else {
         panic!("Expected AcknowledgeChunks message!");
+    }
+}
+#[test]
+fn no_root_handles_if_none_present() {
+    let service = ServiceUtils::service_for_test("no_root_handles_if_none_present");
+
+    let req_msg = GetRootHandles::new();
+    let res_msg = service.call(req_msg).wait().unwrap();
+
+    if let MessageKind::ReturnRootHandles(body) = res_msg.body {
+        assert_eq!(body.root_handle_chunks.len(), 0);
+    } else {
+        panic!("Expected ReturnRootHandles message! (Got: {:?})", res_msg.body);
     }
 }
