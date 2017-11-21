@@ -1,4 +1,5 @@
 mod chunk_index_builder;
+pub mod config;
 
 use std::io;
 use std::path::PathBuf;
@@ -34,8 +35,7 @@ quick_error!{
     }
 }
 
-pub fn run(config: Config, backup_dir: PathBuf) -> Result<(), CreateError> {
-    let expiration_date = Utc::now(); // TODO: Command line parameter!
+pub fn run(config: Config, create_config: config::CreateConfig) -> Result<(), CreateError> {
     let now = Utc::now();
     let file_name = format!("{}/chunk_index-{}.db",
         config.chunk_index_storage.to_str().unwrap(),
@@ -43,14 +43,14 @@ pub fn run(config: Config, backup_dir: PathBuf) -> Result<(), CreateError> {
     let chunk_index = ChunkIndex::new(&file_name, now)?;
     info!("Created chunk index {}", file_name);
 
-    let builder = ChunkIndexBuilder::new(&chunk_index, &backup_dir)?;
+    let builder = ChunkIndexBuilder::new(&chunk_index, &create_config.backup_dir)?;
     builder.build()?;
 
     let mut event_loop = tokio_core::reactor::Core::new()?;
     let handle = event_loop.handle();
 
     let chunks = chunk_index.get_all_chunks()?;
-    let expiration_date_clone = expiration_date.clone();
+    let expiration_date_clone = create_config.expiration_date.clone();
 
     let available_node_chunks = stream::iter_ok::<_, ()>(chunks)
         .map(move|e|{
@@ -71,8 +71,8 @@ pub fn run(config: Config, backup_dir: PathBuf) -> Result<(), CreateError> {
         }).map(|res| match res.body {
             MessageKind::ReturnChunkStates(body) => Some(body),
             _ => None,
-        })
-        .flat_map(|res| res.unwrap().chunks).collect(); //TODO: right method probably: https://docs.rs/futures/0.1/futures/sink/trait.Sink.html#method.with_flat_map
+        });
+        //.flat_map(|res| res.unwrap().chunks).collect(); //TODO: right method probably: https://docs.rs/futures/0.1/futures/sink/trait.Sink.html#method.with_flat_map
 
     // TODO: remove returned chunks from chunk list...
     

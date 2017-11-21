@@ -17,11 +17,11 @@ extern crate sha2;
 extern crate redbackup_protocol;
 
 pub mod config;
+pub mod create;
 mod chunk_index;
-mod create;
 
-use std::path::PathBuf;
+pub use create::config::{CreateConfig, CreateConfigError};
 
-pub fn create(config: config::Config, backup_dir: PathBuf) -> Result<(), create::CreateError> {
-    create::run(config, backup_dir)
+pub fn create(config: config::Config, create_config: CreateConfig) -> Result<(), create::CreateError> {
+    create::run(config, create_config)
 }
