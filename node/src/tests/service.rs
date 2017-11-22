@@ -3,8 +3,7 @@ use tokio_service::Service;
 use chrono::Utc;
 
 use redbackup_protocol::MessageKind;
-use redbackup_protocol::message::{ChunkElement, GetChunkStates, GetChunks, GetDesignation,
-                                  PostChunks, ReturnDesignation};
+use redbackup_protocol::message::*;
 
 use chunk_table::Chunk;
 
@@ -131,6 +130,38 @@ fn post_existing_chunks_in_db() {
         assert_eq!(body.chunks[0], expected);
     } else {
         panic!("Expected AcknowledgeChunks message!");
+    }
+}
+
+#[test]
+fn no_root_handles_if_none_present() {
+    let service = ServiceUtils::service_for_test("no_root_handles_if_none_present");
+
+    let req_msg = GetRootHandles::new();
+    let res_msg = service.call(req_msg).wait().unwrap();
+
+    if let MessageKind::ReturnRootHandles(body) = res_msg.body {
+        assert_eq!(body.root_handle_chunks.len(), 0);
+    } else {
+        panic!("Expected ReturnRootHandles message! (Got: {:?})", res_msg.body);
+    }
+}
+
+#[test]
+fn load_all_root_handles() {
+    let service = ServiceUtils::service_for_test("load_all_root_handles");
+    ServiceUtils::insert_and_verify(&service, ExampleChunkContentElement::one().into());
+    ServiceUtils::insert_and_verify(&service, ExampleChunkContentElement::two().into());
+
+    let req_msg = GetRootHandles::new();
+    let res_msg = service.call(req_msg).wait().unwrap();
+
+    if let MessageKind::ReturnRootHandles(body) = res_msg.body {
+        assert_eq!(body.root_handle_chunks.len(), 1);
+        let expected = ExampleChunkContentElement::two();
+        assert_eq!(body.root_handle_chunks[0], expected);
+    } else {
+        panic!("Expected ReturnRootHandles message! (Got: {:?})", res_msg.body);
     }
 }
 

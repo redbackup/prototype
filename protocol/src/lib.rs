@@ -59,9 +59,9 @@ impl Decoder for RedCodec {
 
     fn decode(&mut self, buf: &mut BytesMut) -> io::Result<Option<Message>> {
         info!("Started decoding message: {:?}", buf);
-        let m = message::decode(buf);
+        let m = decode_message(buf);
         info!("Finished decoding message {:?}", m);
-        if let Err(error) = m {
+        if let Err(_) = m {
             return Ok(None)
         }
         m
@@ -73,6 +73,67 @@ impl Encoder for RedCodec {
     type Error = io::Error;
 
     fn encode(&mut self, msg: Message, buf: &mut BytesMut) -> io::Result<()> {
-        message::encode(msg, buf)
+        encode_message(msg, buf)
     }
+}
+
+pub fn decode_message(buf: &mut BytesMut) -> io::Result<Option<Message>> {
+    let len = buf.len();
+    if len == 0 {
+        Ok(None)
+    } else {
+        serde_json::from_slice(buf)
+            .map_err(|err| io::Error::new(io::ErrorKind::Other, err))
+            .map(|k| {
+                buf.split_to(len);
+                k
+            })
+    }
+}
+
+pub fn encode_message(msg: Message, buf: &mut BytesMut) -> io::Result<()> {
+    serde_json::to_string(&msg)
+        .map(|raw| {
+            buf.extend(raw.as_bytes())
+        })
+        .map_err(|err| io::Error::new(io::ErrorKind::Other, err))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use super::message::ReturnDesignation;
+    use chrono::{Utc, TimeZone};
+    use bytes::BufMut;
+    use std::error::Error;
+
+    #[test]
+    fn decode_invalid_json_incomming_message() {
+        let mut buf = BytesMut::with_capacity(1024);
+        buf.put("{\"just\":\"some\",\"invalid\":\"data\"}");
+        let err = decode_message(&mut buf).unwrap_err();
+        assert_eq!(err.kind(), io::ErrorKind::Other);
+        assert_eq!(err.description(), "JSON error");
+    }
+
+    #[test]
+    fn decode_broken_incomming_message() {
+        let mut buf = BytesMut::with_capacity(1024);
+        buf.put(&b"\x00"[..]);
+        let err = decode_message(&mut buf).unwrap_err();
+        assert_eq!(err.kind(), io::ErrorKind::Other);
+        assert_eq!(err.description(), "JSON error");
+    }
+
+    #[test]
+    fn test_encode_outgoing_message() {
+        let mut buf = BytesMut::with_capacity(1024);
+        let msg =  Message {
+            timestamp: Utc.ymd(2014, 11, 28).and_hms_milli(7, 8, 9, 10),
+            body: MessageKind::ReturnDesignation(ReturnDesignation {designation: false, }),
+        };
+        encode_message(msg, &mut buf).unwrap();
+        assert_eq!(buf, b"{\"timestamp\":\"2014-11-28T07:08:09.010Z\",\"body\":{\"ReturnDesignation\":{\"designation\":false}}}"[..]);
+    }
+
 }

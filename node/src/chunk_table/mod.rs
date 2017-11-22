@@ -66,6 +66,14 @@ impl ChunkTable {
             .map_err(|e| DatabaseError::from(e))
     }
 
+    pub fn get_root_handles(&self) -> Result<Vec<Chunk>, DatabaseError> {
+        let conn = self.db_pool.get()?;
+        chunks::dsl::chunks
+            .filter(chunks::dsl::root_handle.eq(true))
+            .load(&*conn)
+            .map_err(|e| DatabaseError::from(e))
+    }
+
     #[allow(dead_code)]
     pub fn remove_chunk(&self, chunk_identifier: &str) -> Result<usize, DatabaseError> {
         let conn = self.db_pool.get()?;
