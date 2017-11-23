@@ -1,4 +1,7 @@
+use std::io::prelude::*;
 use std::fs;
+use std::path::PathBuf;
+
 use chrono::prelude::*;
 use chunk_index::ChunkIndex;
 use chunk_index::schema::*;
@@ -38,4 +41,45 @@ pub fn _prepare_chunk(chunk_index: &ChunkIndex, file: &File) -> Chunk {
         predecessor: None,
     };
     chunk_index.add_chunk(chunk).expect("Chunk could not be added")
+}
+
+
+/// Creates a testing file struture.
+///
+/// Tree                     Hash (if file)
+/// .
+/// ├── app
+/// │   └── hello_world.rs   0596c5800313885c1a4886e2b45f6389bc573c9487d892f02119d7f1f0ddf579
+/// └── documents
+///     └── redbackup.txt    7fcaddc8772aaa616f43361c217c23d308e933465b2099d00ba1418fec1839f2
+///
+pub fn _prepare_fs_structure(test_name: &str) -> PathBuf {
+    let mut builder = fs::DirBuilder::new();
+    builder.recursive(true);
+
+    let mut root = PathBuf::from( env!("OUT_DIR"));
+    root.push(test_name);
+    builder.create(&root).expect("Could not create testroot");
+
+    let mut documents = root.clone();
+    documents.push("documents");
+    builder.create(&documents).expect("Could not create documents dir");
+
+    documents.push("redbackup.txt");
+    let mut redbackup_file = fs::File::create(&documents)
+        .expect("Could not create redbackup test file");
+    redbackup_file.write_all(b"redbackup")
+        .expect("Could not write to redbackup test file");
+
+    let mut app = root.clone();
+    app.push("app");
+    builder.create(&app).expect("Could not create app dir");
+
+    app.push("hello_world.rs");
+    let mut hello_world_file = fs::File::create(&app)
+        .expect("Could not create hello_world test file");
+    hello_world_file.write_all(b"fn main() {\n    println!(\"Hello, world!\");\n}")
+        .expect("Could not write to hello_world test file");
+
+    root
 }

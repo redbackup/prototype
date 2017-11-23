@@ -3,3 +3,6 @@ pub mod test_data;
 
 #[cfg(test)]
 pub mod chunk_index;
+
+#[cfg(test)]
+pub mod chunk_index_builder;

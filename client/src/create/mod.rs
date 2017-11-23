@@ -1,4 +1,4 @@
-mod chunk_index_builder;
+pub mod chunk_index_builder;
 pub mod config;
 
 use std::io;
