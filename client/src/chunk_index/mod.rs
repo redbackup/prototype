@@ -51,6 +51,10 @@ impl ChunkIndex {
         Ok(ChunkIndex { db_pool, file_name, creation_date })
     }
 
+    pub fn get_file_name(&self) -> PathBuf {
+        self.file_name.clone()
+    }
+
     pub fn add_folder(&self, new_folder: NewFolder) -> Result<Folder,DatabaseError> {
         use self::folders::dsl;
         let conn = self.db_pool.get()?;
