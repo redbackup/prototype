@@ -2,5 +2,6 @@ target/
 cobertura.xml
 coverage.html
 
-# Ignore git swap files
+# Ignore editor/IDE files
 *.swp
+.idea
