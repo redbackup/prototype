@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use serde_bytes;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Message {
@@ -131,10 +132,11 @@ impl ReturnChunkStates {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct ChunkContentElement {
+    #[serde(with = "serde_bytes")]
+    pub chunk_content: Vec<u8>,
     pub chunk_identifier: String,
     pub expiration_date: DateTime<Utc>,
     pub root_handle: bool,
-    pub chunk_content: Vec<u8>,
 }
 
 impl Into<ChunkElement> for ChunkContentElement {
