@@ -1,14 +1,13 @@
 use std::path::PathBuf;
-use std::fs;
 use std::io;
 use std::fs::DirEntry;
 use std::ffi::OsString;
 
 use chrono::prelude::*;
-use sha2::{Sha256,Digest};
 
 use super::{ChunkIndex, DatabaseError};
 use super::{Folder, NewFolder, File, NewFile, NewChunk};
+use super::create_utils;
 
 quick_error! {
     #[derive(Debug)]
@@ -87,7 +86,7 @@ impl ChunkIndexBuilder {
             folder: folder_id,
         })?;
 
-        let chunk_identifier = Self::file_checksum(&file_entry.path())?;
+        let chunk_identifier = create_utils::file_hash(&file_entry.path())?;
 
         self.chunk_index.add_chunk(NewChunk{
             chunk_identifier,
@@ -108,16 +107,5 @@ impl ChunkIndexBuilder {
         };
 
         self.chunk_index.add_folder(NewFolder { name, parent_folder }).map_err(|e| BuilderError::from(e))
-    }
-
-    pub fn file_checksum(file_path: &PathBuf) -> Result<String, io::Error> {
-        let mut file_pointer = fs::File::open(&file_path)?;
-        let hash = Sha256::digest_reader(&mut file_pointer)?;
-
-        let string: String = hash.iter()
-            .map(|e| format!("{:02x}", e))
-            .fold(String::new(), |mut acc, s: String| { acc.push_str(&s); acc });
-
-        Ok(String::from(string))
     }
 }

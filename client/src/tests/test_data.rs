@@ -9,11 +9,11 @@ use chunk_index::schema::*;
 #[allow(unused_must_use)] // as we are not interested in the result of fs::remove_file
 pub fn _prepare_chunk_index(test_name: &str) -> ChunkIndex {
     let creation_date = DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc);
-    let file_name = format!("{}/test-chunk_index-{}.db", env!("OUT_DIR"), test_name);
-    println!("chunk_index file: {}", &file_name);
+    let file_name = PathBuf::from(format!("{}/test-chunk_index-{}.db", env!("OUT_DIR"), test_name));
+    println!("chunk_index file: {:?}", &file_name);
 
     fs::remove_file(&file_name);
-    ChunkIndex::new(&file_name, creation_date).expect("Chunk index could not be created")
+    ChunkIndex::new(file_name, creation_date).expect("Chunk index could not be created")
 }
 
 pub fn _prepare_folder(chunk_index: &ChunkIndex) -> Folder {

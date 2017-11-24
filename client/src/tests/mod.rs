@@ -6,3 +6,6 @@ pub mod chunk_index;
 
 #[cfg(test)]
 pub mod chunk_index_builder;
+
+#[cfg(test)]
+pub mod create_utils;

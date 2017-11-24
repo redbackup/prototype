@@ -26,5 +26,8 @@ mod chunk_index;
 pub use create::config::{CreateConfig, CreateConfigError};
 
 pub fn create(config: config::Config, create_config: CreateConfig) -> Result<(), create::CreateError> {
-    create::run(config, create_config)
+    create::Create::new(
+        config,
+        create_config,
+    )?.run()
 }

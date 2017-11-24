@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use r2d2;
 use diesel;
 use r2d2::{Config,Pool};
@@ -33,20 +35,20 @@ quick_error! {
 #[derive(Clone)]
 pub struct ChunkIndex {
     db_pool: Pool<ConnectionManager<SqliteConnection>>,
-    file_name: String,
+    file_name: PathBuf,
     creation_date: DateTime<Utc>
 }
 
 impl ChunkIndex {
-    pub fn new(file_name: &str, creation_date: DateTime<Utc>) -> Result<Self, DatabaseError> {
+    pub fn new(file_name: PathBuf, creation_date: DateTime<Utc>) -> Result<Self, DatabaseError> {
         let config = Config::default();
-        let manager = ConnectionManager::<SqliteConnection>::new(file_name);
+        let manager = ConnectionManager::<SqliteConnection>::new(file_name.to_string_lossy());
         let db_pool = Pool::new(config, manager)?;
 
         let conn = db_pool.get()?;
         embedded_migrations::run(&*conn)?;
 
-        Ok(ChunkIndex { db_pool, file_name: String::from(file_name), creation_date })
+        Ok(ChunkIndex { db_pool, file_name, creation_date })
     }
 
     pub fn add_folder(&self, new_folder: NewFolder) -> Result<Folder,DatabaseError> {

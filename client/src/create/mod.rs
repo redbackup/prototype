@@ -1,153 +1,216 @@
 pub mod chunk_index_builder;
 pub mod config;
+pub mod create_error;
+pub mod create_utils;
+pub use self::create_error::CreateError;
+pub use self::config::CreateConfig;
 
-use std::io;
-use std::io::Read;
-use std::fs;
+use std::path::PathBuf;
 
 use tokio_core;
 use tokio_service::Service;
 use tokio_proto::TcpClient;
+use tokio_core::reactor::{Core,Handle};
 use futures::*;
 use chrono::prelude::*;
 
 use redbackup_protocol::RedClientProto;
 use redbackup_protocol::message::{MessageKind, GetDesignation, GetChunkStates, ChunkElement, PostChunks, ChunkContentElement};
+
 use super::config::Config;
 use super::chunk_index::{ChunkIndex, DatabaseError};
-use super::chunk_index::schema::{Folder, NewFolder, File, NewFile, NewChunk};
-use self::chunk_index_builder::{ChunkIndexBuilder, BuilderError};
+use super::chunk_index::schema::{Folder, NewFolder, File, NewFile, NewChunk, Chunk};
+use self::chunk_index_builder::ChunkIndexBuilder;
 
-quick_error!{
-    #[derive(Debug)]
-    pub enum CreateError {
-        DatabaseError(err: DatabaseError) {
-            from()
-            cause(err)
-        }
-        BuilderError(err: BuilderError) {
-            from()
-            cause(err)
-        }
-        IoError(err: io::Error) {
-            from()
-            cause(err)
-        }
-        DesignationNotGrantedError(node: String) {
-            description("Designation was not granted")
-            display("Designation was not granted by the node {}", node)
-        }
-    }
+pub struct Create {
+    config: Config,
+    create_config: CreateConfig,
+    chunk_index_file: PathBuf,
+    chunk_index: ChunkIndex,
+    event_loop: Core,
+    handle: Handle,
 }
 
-pub fn run(config: Config, create_config: config::CreateConfig) -> Result<(), CreateError> {
-    let now = Utc::now();
-    let file_name = format!("{}/chunk_index-{}.db",
-        config.chunk_index_storage.to_str().unwrap(),
-        now.to_rfc3339());
-    let chunk_index = ChunkIndex::new(&file_name, now)?;
-    info!("Created chunk index {}", file_name);
+impl Create {
+    /// Create initial structures for a new backup.
+    pub fn new(config: Config, create_config: CreateConfig) -> Result<Self,CreateError> {
+        let now = Utc::now();
+        let chunk_index_file = PathBuf::from(format!("{}/chunk_index-{}.db",
+            config.chunk_index_storage.to_str().unwrap(),
+            now.to_rfc3339()));
+        info!("Creating chunk index {}", chunk_index_file.to_string_lossy());
 
-    let builder = ChunkIndexBuilder::new(&chunk_index, &create_config.backup_dir)?;
-    builder.build()?;
+        let event_loop = tokio_core::reactor::Core::new()?;
+        let handle = event_loop.handle();
 
-    let mut event_loop = tokio_core::reactor::Core::new()?;
-    let handle = event_loop.handle();
-
-    let chunks = chunk_index.get_all_chunks()?;
-    let expiration_date_clone = create_config.expiration_date.clone();
-
-    let chunk_elements = chunks.iter()
-        .map(move|e|{
-            ChunkElement {
-                chunk_identifier: e.chunk_identifier.clone(),
-                expiration_date: expiration_date_clone,
-                root_handle: false,
-            }
-        }).collect();
-
-    let expiration_date_clone = create_config.expiration_date.clone();
-    let designation_request = TcpClient::new(RedClientProto)
-        .connect(&config.addr, &handle.clone())
-        .and_then(move|client| {
-            info!("Sending GetDesignation message");
-            client.call(GetDesignation::new(0, expiration_date_clone))
+        Ok(Self {
+            config,
+            create_config,
+            chunk_index_file: chunk_index_file.clone(),
+            chunk_index: ChunkIndex::new(chunk_index_file, now)?,
+            event_loop,
+            handle,
         })
-        .map(|res| match res.body {
-            MessageKind::ReturnDesignation(body) => Some(body.designation),
-            _ => None,
-        }).map(|c| c.unwrap());
-    let designation = event_loop.run(designation_request).map_err(|e| CreateError::from(e))?;
-
-    if !designation {
-        CreateError::DesignationNotGrantedError(format!("{:?}", config.addr));
-    } else {
-        info!("Designation was granted by the node");
     }
 
-    let node_chunks_future = TcpClient::new(RedClientProto)
-        .connect(&config.addr, &handle.clone())
-        .and_then(move|client| {
-            info!("Sending GetChunkStates message");
-            client.call(GetChunkStates::new(chunk_elements))
-        })
-        .map(|res| match res.body {
-            MessageKind::ReturnChunkStates(body) => Some(body.chunks),
-            _ => None,
-        }).map(|c| c.unwrap());
-    let node_chunks: Vec<ChunkElement> = event_loop.run(node_chunks_future).map_err(|e| CreateError::from(e))?;
+    /// The backup process
+    pub fn run(&mut self) -> Result<(), CreateError> {
+        // Read folder structure
+        let builder = ChunkIndexBuilder::new(&self.chunk_index, &self.create_config.backup_dir)?;
+        builder.build()?;
 
-    let mut remaining_chunks = chunks.clone();
-    remaining_chunks.retain(|x| {
-            node_chunks.iter().filter(|e| e.chunk_identifier == x.chunk_identifier)
-            .count() == 0
-        });
-    let remaining_chunks = remaining_chunks;
-    info!("{} of total {} chunks are already stored on the node", chunks.len() - remaining_chunks.len(), chunks.len());
+        self.request_designation()?;
+        info!("Designation was granted by the node");
 
-    for chunk in remaining_chunks.iter() {
-        let mut path = create_config.backup_dir.clone();
-        path.pop();
-        chunk_index.get_full_chunk_path(chunk.file)?.iter().for_each(|x| path.push(x));
-        let path = path;
-        info!("Sending file {:?}", path);
+        let mut chunks = self.chunk_index.get_all_chunks()?;
+        let chunk_elements = chunks.iter()
+            .map(|e|{
+                ChunkElement {
+                    chunk_identifier: e.chunk_identifier.clone(),
+                    expiration_date: self.create_config.expiration_date.clone(),
+                    root_handle: false,
+                }
+            }).collect();
 
-        let mut fhandle = fs::File::open(path)?;
-        let mut buf = Vec::new();
-        fhandle.read_to_end(&mut buf)?;
 
-        let chunk_content_element = ChunkContentElement{
-            chunk_identifier: chunk.chunk_identifier.clone(),
-            expiration_date: create_config.expiration_date.clone(),
-            root_handle: false,
-            chunk_content: buf,
-        };
+        let node_chunks = self.get_available_chunks_from_node(chunk_elements)?;
+        info!(
+            "{} of total {} chunks are already stored on the node",
+            chunks.len() - node_chunks.len(),
+            chunks.len()
+        );
+        Self::reduce_by_remaining_chunks(&mut chunks, &node_chunks);
 
-        info!("Sending chunk message for {}", chunk.chunk_identifier);
-        let node_post_chunks = TcpClient::new(RedClientProto)
-            .connect(&config.addr, &handle.clone())
+
+        // Send chunks one by one.
+        for chunk in chunks {
+            let chunk_content_element = self.chunk_to_chunk_content_element(chunk)?;
+            info!("Sending chunk message for {}", chunk_content_element.chunk_identifier);
+            self.send_chunk(chunk_content_element)?;
+        }
+        info!("Successfully sent all data chunks.");
+
+        self.send_chunk_index()?;
+        info!("Successfully sent chunk index as root handle.");
+
+        Ok(())
+    }
+
+    /// Send a backup designation to the node
+    fn request_designation(&mut self) -> Result<(),CreateError> {
+        let expiration_date_clone = self.create_config.expiration_date.clone();
+        let addr_clone = self.config.addr.clone();
+        let request = TcpClient::new(RedClientProto)
+            .connect(&self.config.addr, &self.handle.clone())
             .and_then(move|client| {
+                info!("Request designation from node");
+                client.call(GetDesignation::new(0, expiration_date_clone))
+            })
+            .map(|res| match res.body {
+                MessageKind::ReturnDesignation(body) => Ok(body.designation),
+                _ => Err(CreateError::NodeCommunicationError),
+            });
+
+        let designation = self.event_loop.run(request).map_err(|e| CreateError::from(e))??;
+        if designation {
+            Ok(())
+        } else {
+            Err(CreateError::DesignationNotGrantedError(format!("{:?}", addr_clone)))
+        }
+    }
+
+    /// Ask the node, which chunks of `chunk_elements` he already has.
+    fn get_available_chunks_from_node(
+        &mut self,
+        chunk_elements: Vec<ChunkElement>
+    ) -> Result<Vec<ChunkElement>,CreateError> {
+        let request = TcpClient::new(RedClientProto)
+            .connect(&self.config.addr, &self.handle.clone())
+            .and_then(move|client| {
+                info!("Sending GetChunkStates message");
+                client.call(GetChunkStates::new(chunk_elements))
+            })
+            .map(|res| match res.body {
+                MessageKind::ReturnChunkStates(body) => Ok(body.chunks),
+                _ => Err(CreateError::NodeCommunicationError),
+            });
+
+        let node_chunks = self.event_loop.run(request).map_err(|e| CreateError::from(e))??;
+        Ok(node_chunks)
+    }
+
+    /// Remove `reduction` from `elements` chunks.
+    fn reduce_by_remaining_chunks(elements: &mut Vec<Chunk>, reduction: &Vec<ChunkElement>) {
+        elements.retain(|e| {
+                reduction.iter().filter(|x| e.chunk_identifier == x.chunk_identifier)
+                .count() == 0
+            });
+    }
+
+    /// Map a `Chunk` to a `ChunkContentElement` enriched with the file content.
+    fn chunk_to_chunk_content_element(
+        &self, chunk: Chunk
+    ) -> Result<ChunkContentElement, CreateError> {
+
+        // Get full path of this chunk's file
+        let mut path = self.create_config.backup_dir.clone();
+        self.chunk_index.get_full_chunk_path(chunk.file)?.iter().skip(1).for_each(|x| path.push(x));
+
+        Ok(ChunkContentElement {
+            chunk_identifier: chunk.chunk_identifier.clone(),
+            expiration_date: self.create_config.expiration_date.clone(),
+            root_handle: false,
+            chunk_content: create_utils::read_file_content(&path)?,
+        })
+
+    }
+
+    /// Send the `chunk` to the node, raising an Error if the chunk was not acknowledged.
+    fn send_chunk(
+        &mut self, chunk: ChunkContentElement
+    ) -> Result<(), CreateError> {
+        let chunk_identifier = chunk.chunk_identifier.clone();
+        let node_post_chunks = TcpClient::new(RedClientProto)
+            .connect(&self.config.addr, &self.handle.clone())
+            .and_then(|client| {
                 info!("Sending PostChunks message");
-                client.call(PostChunks::new(vec!(chunk_content_element)))
+                client.call(PostChunks::new(vec!(chunk)))
             })
             .map(|res| match res.body {
                 MessageKind::AcknowledgeChunks(body) => Some(body.chunks),
                 _ => None,
             });
 
-        let acked_chunks = event_loop.run(node_post_chunks).map_err(|e| CreateError::from(e))?;
+        let acknowledged_chunks: Vec<ChunkElement> = self.event_loop.run(node_post_chunks)
+            .map_err(|e| CreateError::from(e))?
+            .ok_or(CreateError::NodeCommunicationError)?;
 
-        if let Some(acked_chunks) = acked_chunks {
-            let acked_identifier = acked_chunks.get(0).unwrap().chunk_identifier.clone();
-            if acked_identifier == chunk.chunk_identifier {
-                debug!("Acked chunk: {}", acked_identifier);
-            } else {
-                error!("Expected chunk {} acknowledgement, got {}", chunk.chunk_identifier, acked_identifier);
-            }
+        let acknowledged_chunk: &ChunkElement = acknowledged_chunks.get(0)
+            .ok_or(CreateError::ChunkNotAcknowledged(chunk_identifier.clone()))?;
+
+        if acknowledged_chunk.chunk_identifier == chunk_identifier {
+            debug!("Acked chunk: {}", acknowledged_chunk.chunk_identifier);
+            Ok(())
         } else {
-            error!("Chunk {} was not acknowledged by the node!", chunk.chunk_identifier);
+            error!(
+                "Expected chunk {} acknowledgement, got {}",
+                chunk_identifier,
+                acknowledged_chunk.chunk_identifier
+            );
+            Err(CreateError::ChunkNotAcknowledged(chunk_identifier))
         }
     }
 
-    Ok(())
+    /// Send the chunk index as root_handle to the node.
+    fn send_chunk_index(&mut self) -> Result<(), CreateError> {
+        let chunk_identifier = create_utils::file_hash(&self.chunk_index_file)?;
+        let chunk_content = create_utils::read_file_content(&self.chunk_index_file)?;
+        let expiration_date = self.create_config.expiration_date.clone();
+        self.send_chunk(ChunkContentElement{
+            chunk_identifier,
+            chunk_content,
+            expiration_date,
+            root_handle: true,
+        })
+    }
 }

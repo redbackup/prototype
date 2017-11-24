@@ -3,18 +3,6 @@ use create::chunk_index_builder::ChunkIndexBuilder;
 
 #[ignore]
 #[test]
-fn file_checksum() {
-    let mut path = test_data::_prepare_fs_structure("chunk_index_builder_file_checksum");
-    path.push("documents/redbackup.txt");
-
-    let checksum = ChunkIndexBuilder::file_checksum(&path)
-        .expect("file_checksum returned an Error");
-    let expected_checksum = "7fcaddc8772aaa616f43361c217c23d308e933465b2099d00ba1418fec1839f2";
-    assert_eq!(checksum, expected_checksum);
-}
-
-#[ignore]
-#[test]
 fn new() {
     let fnname = "chunk_index_builder_new";
     let chunk_index = test_data::_prepare_chunk_index(fnname);
