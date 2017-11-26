@@ -16,5 +16,13 @@ quick_error!{
         NodeCommunicationError {
             description("The node did not respond with the expected message")
         }
+        RootHandleChunkNotAvailable(err: String) {
+            description("Root Handle is not available on node")
+            display("Root Handle {} is not available on the node", err)
+        }
+        ChunkNotAvailable(err: String) {
+            description("Chunk is not available on node")
+            display("Chunk {} is not available on the node", err)
+        }
     }
 }

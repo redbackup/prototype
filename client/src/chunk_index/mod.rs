@@ -123,4 +123,14 @@ impl ChunkIndex {
             Ok(path)
         })
     }
+
+    pub fn get_folders_by_parent(&self, parent_folder: Option<i32>) -> Result<Vec<Folder>, DatabaseError> {
+        use self::folders::dsl;
+        let conn = self.db_pool.get()?;
+        if let Some(parent_folder) = parent_folder {
+            dsl::folders.filter(dsl::parent_folder.eq(parent_folder)).load::<Folder>(&*conn).map_err(|e| DatabaseError::from(e))
+        } else {
+            dsl::folders.filter(dsl::parent_folder.is_null()).load::<Folder>(&*conn).map_err(|e| DatabaseError::from(e))
+        }
+    }
 }

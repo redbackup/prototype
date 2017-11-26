@@ -116,9 +116,14 @@ fn main() {
                 .unwrap_or_else(|err| eprintln!("Huston, we have a problem! ({})", err));
         },
 
-        ("list", _) => {
-            redbackup_client::list(config)
-                .unwrap_or_else(|err| eprintln!("Huston, we have a problem! ({})", err));
+        ("list", _) => match redbackup_client::list(config) {
+            Err(err)              => eprintln!("Huston, we have a problem! ({})", err),
+            Ok(available_backups) => {
+                println!("{:64} Expiration Date", "Backup ID"); // Backup ID length is hash dependent.
+                for backup in available_backups {
+                    println!("{} {}", backup.0, backup.1);
+                }
+            },
         },
 
         ("restore", Some(matches_restore)) => {

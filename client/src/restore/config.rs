@@ -14,8 +14,6 @@ quick_error! {
     }
 }
 
-
-
 impl RestoreConfig {
     pub fn new(backup_id: &str,local_restore_dir: &str) -> Result<RestoreConfig, RestoreConfigError> {
         let restore_dir = PathBuf::from(local_restore_dir);
@@ -26,7 +24,7 @@ impl RestoreConfig {
         }
 
         let backup_id = String::from(backup_id);
-        if backup_id.len() != 64 {
+        if backup_id.len() != 64 { // This validation is hash dependent.
             return Err(RestoreConfigError::InvalidBackupId(backup_id));
         };
 

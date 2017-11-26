@@ -4,6 +4,7 @@
 #[macro_use] extern crate diesel_codegen;
 #[macro_use] extern crate log;
 extern crate futures;
+extern crate futures_cpupool;
 extern crate tokio_proto;
 extern crate tokio_service;
 extern crate tokio_core;
@@ -26,6 +27,7 @@ mod chunk_index;
 
 pub use create_backup::config::{CreateBackupConfig, CreateBackupConfigError};
 pub use restore::config::{RestoreConfig, RestoreConfigError};
+use chrono::prelude::*;
 
 pub fn create_backup(config: config::Config, create_backup_config: CreateBackupConfig) -> Result<(), create_backup::CreateError> {
     create_backup::CreateBackupContext::new(
@@ -34,7 +36,7 @@ pub fn create_backup(config: config::Config, create_backup_config: CreateBackupC
     )?.run()
 }
 
-pub fn list(config: config::Config) -> Result<(), list::ListError> {
+pub fn list(config: config::Config) -> Result<Vec<(String, DateTime<Utc>)>, list::ListError> {
     list::List::new(config)?.run()
 }
 
