@@ -13,13 +13,13 @@ use redbackup_protocol::message::*;
 
 use super::config::Config;
 
-pub struct ListBackups {
+pub struct ListBackupsContext {
     config: Config,
     event_loop: Core,
     handle: Handle,
 }
 
-impl ListBackups {
+impl ListBackupsContext {
     /// Create initial structures to list backups
     pub fn new(config: Config) -> Result<Self,ListBackupsError> {
         let event_loop = tokio_core::reactor::Core::new()?;

@@ -21,14 +21,14 @@ use redbackup_protocol::message::*;
 use super::config::Config;
 use super::chunk_index::ChunkIndex;
 
-pub struct RestoreBackup {
+pub struct RestoreBackupContext {
     config: Config,
     restore_config: RestoreBackupConfig,
     event_loop: Core,
     handle: Handle,
 }
 
-impl RestoreBackup {
+impl RestoreBackupContext {
     /// Create initial structures for a restore.
     pub fn new(config: Config, restore_config: RestoreBackupConfig) -> Result<Self,RestoreBackupError> {
         let event_loop = tokio_core::reactor::Core::new()?;

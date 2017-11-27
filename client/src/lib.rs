@@ -37,9 +37,9 @@ pub fn create_backup(config: config::Config, create_backup_config: CreateBackupC
 }
 
 pub fn list_backups(config: config::Config) -> Result<Vec<(String, DateTime<Utc>)>, list_backups::ListBackupsError> {
-    list_backups::ListBackups::new(config)?.run()
+    list_backups::ListBackupsContext::new(config)?.run()
 }
 
 pub fn restore_backup(config: config::Config, restore_backup_config: RestoreBackupConfig) -> Result<(), restore_backup::RestoreBackupError> {
-    restore_backup::RestoreBackup::new(config, restore_backup_config)?.run()
+    restore_backup::RestoreBackupContext::new(config, restore_backup_config)?.run()
 }
