@@ -6,7 +6,7 @@ extern crate redbackup_client;
 use std::process;
 
 use redbackup_client::config::{Config, ParseError};
-use redbackup_client::{CreateConfig, CreateConfigError};
+use redbackup_client::{CreateBackupConfig, CreateBackupConfigError};
 
 use clap::{App, Arg, SubCommand};
 
@@ -80,21 +80,21 @@ fn main() {
 
             let local_backup_dir = matches_create.value_of("local-backup-dir").unwrap();
             let expiration_date = matches_create.value_of("expiration-date").unwrap();
-            let backup_cfg = CreateConfig::new(local_backup_dir, expiration_date).unwrap_or_else(|err| {
+            let backup_cfg = CreateBackupConfig::new(local_backup_dir, expiration_date).unwrap_or_else(|err| {
                 match err {
-                    CreateConfigError::NonExistingDirectory(err) => {
+                    CreateBackupConfigError::NonExistingDirectory(err) => {
                         eprintln!("The given directory '{}' does not exist", err)
                     }
-                    CreateConfigError::InvalidDateFormat(err) => {
+                    CreateBackupConfigError::InvalidDateFormat(err) => {
                         eprintln!("The given date '{}' can not be parsed (format: %Y-%m-%dT%H:%M)", err)
                     },
-                    CreateConfigError::DateNotFarEnoughInTheFuture(err) => {
+                    CreateBackupConfigError::DateNotFarEnoughInTheFuture(err) => {
                         eprintln!("The given date '{}' is not far enough in the future", err)
                     },
                 };
                 process::exit(1);
             });
-            redbackup_client::create(config, backup_cfg)
+            redbackup_client::create_backup(config, backup_cfg)
                 .unwrap_or_else(|err| eprintln!("Huston, we have a problem! ({})", err));
         }
         (&_, _) => eprintln!("No command was used!"),

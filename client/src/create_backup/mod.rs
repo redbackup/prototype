@@ -3,7 +3,7 @@ pub mod config;
 pub mod create_error;
 pub mod create_utils;
 pub use self::create_error::CreateError;
-pub use self::config::CreateConfig;
+pub use self::config::CreateBackupConfig;
 
 use std::path::PathBuf;
 
@@ -22,17 +22,17 @@ use super::chunk_index::{ChunkIndex, DatabaseError};
 use super::chunk_index::schema::{Folder, NewFolder, File, NewFile, NewChunk, Chunk};
 use self::create_chunk_index::CreateChunkIndex;
 
-pub struct Create {
+pub struct CreateBackupContext {
     config: Config,
-    create_config: CreateConfig,
+    create_backup_config: CreateBackupConfig,
     chunk_index: ChunkIndex,
     event_loop: Core,
     handle: Handle,
 }
 
-impl Create {
+impl CreateBackupContext {
     /// Create initial structures for a new backup.
-    pub fn new(config: Config, create_config: CreateConfig) -> Result<Self,CreateError> {
+    pub fn new(config: Config, create_backup_config: CreateBackupConfig) -> Result<Self,CreateError> {
         let now = Utc::now();
         let chunk_index_file = PathBuf::from(format!("{}/chunk_index-{}.db",
             config.chunk_index_storage.to_str().unwrap(),
@@ -44,7 +44,7 @@ impl Create {
 
         Ok(Self {
             config,
-            create_config,
+            create_backup_config,
             chunk_index: ChunkIndex::new(chunk_index_file, now)?,
             event_loop,
             handle,
@@ -53,7 +53,7 @@ impl Create {
 
     /// The backup process
     pub fn run(&mut self) -> Result<(), CreateError> {
-        CreateChunkIndex::new(&self.chunk_index, &self.create_config.backup_dir)?;
+        CreateChunkIndex::new(&self.chunk_index, &self.create_backup_config.backup_dir)?;
         info!("The chunk index was built successfully");
 
         self.request_designation()?;
@@ -87,7 +87,7 @@ impl Create {
 
     /// Send a backup designation to the node
     fn request_designation(&mut self) -> Result<(),CreateError> {
-        let expiration_date = self.create_config.expiration_date.clone();
+        let expiration_date = self.create_backup_config.expiration_date.clone();
         let req = GetDesignation::new(0, expiration_date);
         let designation = self.message_node_sync(req)
             .map(|res| match res.body {
@@ -156,7 +156,7 @@ impl Create {
         let file_name = self.chunk_index.get_file_name();
         let chunk_identifier = create_utils::file_hash(&file_name)?;
         let chunk_content = create_utils::read_file_content(&file_name)?;
-        let expiration_date = self.create_config.expiration_date.clone();
+        let expiration_date = self.create_backup_config.expiration_date.clone();
         self.send_chunk(ChunkContentElement{
             chunk_identifier,
             chunk_content,
@@ -180,13 +180,13 @@ impl Create {
     ) -> Result<ChunkContentElement, CreateError> {
 
         // Get full path of this chunk's file
-        let mut path = self.create_config.backup_dir.clone();
+        let mut path = self.create_backup_config.backup_dir.clone();
         self.chunk_index.get_full_chunk_path(chunk.file)?.iter().skip(1)
             .for_each(|x| path.push(x));
 
         Ok(ChunkContentElement {
             chunk_identifier: chunk.chunk_identifier.clone(),
-            expiration_date: self.create_config.expiration_date.clone(),
+            expiration_date: self.create_backup_config.expiration_date.clone(),
             root_handle: false,
             chunk_content: create_utils::read_file_content(&path)?,
         })
@@ -196,7 +196,7 @@ impl Create {
     fn chunk_to_chunk_element(&self, chunk: &Chunk) -> ChunkElement {
         ChunkElement {
             chunk_identifier: chunk.chunk_identifier.clone(),
-            expiration_date: self.create_config.expiration_date.clone(),
+            expiration_date: self.create_backup_config.expiration_date.clone(),
             root_handle: false,
         }
     }

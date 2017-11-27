@@ -1,5 +1,5 @@
 use super::test_data;
-use create::create_chunk_index::CreateChunkIndex;
+use create_backup::create_chunk_index::CreateChunkIndex;
 
 #[ignore]
 #[test]
