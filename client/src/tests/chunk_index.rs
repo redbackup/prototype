@@ -37,11 +37,15 @@ fn add_chunks() {
     let chunk1 = test_data::prepare_chunk(&chunk_index, &file);
 
     let chunk2 = NewChunk {
-        chunk_identifier: String::from("f6056ef7890a99494c34951817c2ed4fd3608a8488ef0ae6f2afac93ed76854e"),
+        chunk_identifier: String::from(
+            "f6056ef7890a99494c34951817c2ed4fd3608a8488ef0ae6f2afac93ed76854e",
+        ),
         file: file.id,
         predecessor: Some(chunk1.id),
     };
-    chunk_index.add_chunk(chunk2).expect("Chunk could not be added");
+    chunk_index.add_chunk(chunk2).expect(
+        "Chunk could not be added",
+    );
 }
 
 
@@ -52,19 +56,51 @@ fn get_all_chunks() {
     let file = test_data::prepare_file(&chunk_index, &folder);
     let chunk1 = test_data::prepare_chunk(&chunk_index, &file);
 
-    let chunks = chunk_index.get_all_chunks().expect("Could not get all chunks");
+    let chunks = chunk_index.get_all_chunks().expect(
+        "Could not get all chunks",
+    );
 
-    assert_eq!(chunks, vec!(chunk1));
+    assert_eq!(chunks, vec![chunk1]);
 }
 
 #[test]
-fn get_file_path(){
+fn get_file_path() {
     let chunk_index = test_data::prepare_chunk_index("get_file_path");
     let folder = test_data::prepare_folder(&chunk_index);
     let file = test_data::prepare_file(&chunk_index, &folder);
     let chunk1 = test_data::prepare_chunk(&chunk_index, &file);
 
-    let path = chunk_index.get_file_path(chunk1.file).expect("Could not get full chunk paths");
+    let path = chunk_index.get_file_path(chunk1.file).expect(
+        "Could not get full chunk paths",
+    );
 
-    assert_eq!(path, PathBuf::from(format!("{}/{}",folder.name,file.name)));
+    assert_eq!(
+        path,
+        PathBuf::from(format!("{}/{}", folder.name, file.name))
+    );
+}
+
+#[test]
+fn get_folders_by_parent() {
+    let chunk_index = test_data::prepare_chunk_index("get_folders_by_parent");
+    let folder1 = test_data::prepare_folder(&chunk_index);
+
+    let folder2 = NewFolder {
+        name: String::from("bibio"),
+        parent_folder: Some(folder1.id),
+    };
+
+    let folder2 = chunk_index.add_folder(folder2).expect(
+        "Could not add second folder",
+    );
+
+    let folders_root = chunk_index.get_folders_by_parent(None).expect(
+        "get_folders_by_parent(none) could not get folders",
+    );
+    assert_eq!(folders_root, vec![folder1.clone()]);
+
+    let folders_under_folder1 = chunk_index.get_folders_by_parent(Some(folder1.id)).expect(
+        "get_folders_by_parent(folder1) could not get folders",
+    );
+    assert_eq!(folders_under_folder1, vec![folder2.clone()]);
 }
