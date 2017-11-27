@@ -65,7 +65,7 @@ impl CreateBackupContext {
 
         let node_chunks = self.get_available_chunks_from_node(chunk_elements)?;
         info!(
-            "{} of total {} chunks are already stored on the node",
+            "{} of total {} chunks are not yet stored on the node",
             chunks.len() - node_chunks.len(),
             chunks.len()
         );
@@ -181,8 +181,8 @@ impl CreateBackupContext {
 
         // Get full path of this chunk's file
         let mut path = self.create_backup_config.backup_dir.clone();
-        self.chunk_index.get_full_chunk_path(chunk.file)?.iter().skip(1)
-            .for_each(|x| path.push(x));
+        path.pop(); // The last folder here is the same as the root folder of the file
+        path.push(self.chunk_index.get_file_path(chunk.file)?);
 
         Ok(ChunkContentElement {
             chunk_identifier: chunk.chunk_identifier.clone(),

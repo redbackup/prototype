@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use super::test_data;
 use chunk_index::schema::*;
 
@@ -62,13 +64,13 @@ fn get_all_chunks() {
 
 #[test]
 #[ignore]
-fn get_full_chunk_path(){
-    let chunk_index = test_data::prepare_chunk_index("get_full_chunk_path");
+fn get_file_path(){
+    let chunk_index = test_data::prepare_chunk_index("get_file_path");
     let folder = test_data::prepare_folder(&chunk_index);
     let file = test_data::prepare_file(&chunk_index, &folder);
     let chunk1 = test_data::prepare_chunk(&chunk_index, &file);
 
-    let path = chunk_index.get_full_chunk_path(chunk1.file).expect("Could not get full chunk paths");
+    let path = chunk_index.get_file_path(chunk1.file).expect("Could not get full chunk paths");
 
-    assert_eq!(path, vec!(folder.name,file.name));
+    assert_eq!(path, PathBuf::from(format!("{}/{}",folder.name,file.name)));
 }

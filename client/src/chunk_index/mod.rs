@@ -95,18 +95,19 @@ impl ChunkIndex {
         self::chunks::table.load(&*conn).map_err(|e| DatabaseError::from(e))
     }
 
-    pub fn get_full_chunk_path(&self, file_id: i32) -> Result<Vec<String>, DatabaseError> {
+    pub fn get_file_path(&self, file_id: i32) -> Result<PathBuf, DatabaseError> {
         use self::folders::dsl;
         use self::files;
         let conn = self.db_pool.get()?;
 
         let file = files::dsl::files.filter(files::dsl::id.eq(&file_id)).first::<File>(&*conn)?;
         let mut parent_id = file.folder;
-        let mut path = vec!(file.name.clone());
+        let mut path_vec = vec!(file.name.clone());
+        let mut path = PathBuf::new();
 
         loop {
             let folder = dsl::folders.filter(dsl::id.eq(parent_id)).first::<Folder>(&*conn)?;
-            path.push(folder.name.clone());
+            path_vec.push(folder.name.clone());
 
             if let Some(parent) = folder.parent_folder {
                 parent_id = parent;
@@ -114,7 +115,8 @@ impl ChunkIndex {
                 break;
             }
         }
-        path.reverse();
+        path_vec.reverse();
+        path_vec.iter().for_each(|e| path.push(e));
         Ok(path)
     }
 }
