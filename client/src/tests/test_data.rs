@@ -57,7 +57,7 @@ pub fn _prepare_fs_structure(test_name: &str) -> PathBuf {
     let mut builder = fs::DirBuilder::new();
     builder.recursive(true);
 
-    let mut root = PathBuf::from( env!("OUT_DIR"));
+    let mut root = PathBuf::from(env!("OUT_DIR"));
     root.push(test_name);
     builder.create(&root).expect("Could not create testroot");
 

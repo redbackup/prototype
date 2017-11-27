@@ -89,7 +89,8 @@ impl Create {
     /// Send a backup designation to the node
     fn request_designation(&mut self) -> Result<(),CreateError> {
         let expiration_date = self.create_config.expiration_date.clone();
-        let designation = self.message_node_sync(GetDesignation::new(0, expiration_date))
+        let req = GetDesignation::new(0, expiration_date);
+        let designation = self.message_node_sync(req)
             .map(|res| match res.body {
                 MessageKind::ReturnDesignation(body) => Ok(body.designation),
                 _ => Err(CreateError::NodeCommunicationError),
@@ -107,7 +108,8 @@ impl Create {
         &mut self,
         chunk_elements: Vec<ChunkElement>
     ) -> Result<Vec<ChunkElement>,CreateError> {
-        self.message_node_sync(GetChunkStates::new(chunk_elements))
+        let req = GetChunkStates::new(chunk_elements);
+        self.message_node_sync(req)
             .map(|res| match res.body {
                 MessageKind::ReturnChunkStates(body) => Ok(body.chunks),
                 _ => Err(CreateError::NodeCommunicationError),
@@ -127,7 +129,8 @@ impl Create {
         let chunk_identifier = chunk.chunk_identifier.clone();
 
         info!("Sending PostChunks message for {}", chunk.chunk_identifier);
-        let acknowledged_chunks: Vec<ChunkElement> = self.message_node_sync(PostChunks::new(vec!(chunk)))
+        let req = PostChunks::new(vec!(chunk));
+        let acknowledged_chunks: Vec<ChunkElement> = self.message_node_sync(req)
             .map(|res| match res.body {
                 MessageKind::AcknowledgeChunks(body) => Some(body.chunks),
                 _ => None,
@@ -138,7 +141,7 @@ impl Create {
             .ok_or(CreateError::ChunkNotAcknowledged(chunk_identifier.clone()))?;
 
         if acknowledged_chunk.chunk_identifier == chunk_identifier {
-            debug!("Acked chunk: {}", acknowledged_chunk.chunk_identifier);
+            debug!("Acknowledged chunk: {}", acknowledged_chunk.chunk_identifier);
             Ok(())
         } else {
             error!(
