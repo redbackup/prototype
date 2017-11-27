@@ -1,7 +1,6 @@
 use create_backup::create_utils;
 use super::test_data;
 
-#[ignore]
 #[test]
 fn read_file_content() {
     let mut path = test_data::prepare_fs_structure("create_utils_file_hash");
@@ -13,7 +12,6 @@ fn read_file_content() {
     assert_eq!(content, expected_content);
 }
 
-#[ignore]
 #[test]
 fn file_hash() {
     let mut path = test_data::prepare_fs_structure("create_utils_file_hash");

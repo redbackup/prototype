@@ -1,7 +1,6 @@
 use super::test_data;
 use create_backup::create_chunk_index::CreateChunkIndex;
 
-#[ignore]
 #[test]
 fn new() {
     let fnname = "create_chunk_index_new";
@@ -11,7 +10,6 @@ fn new() {
         .expect("Could not create chunk index builder");
 }
 
-#[ignore]
 #[test]
 fn build() {
     let fnname = "create_chunk_index_build";

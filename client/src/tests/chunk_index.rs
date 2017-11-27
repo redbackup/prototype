@@ -5,13 +5,11 @@ use chunk_index::schema::*;
 
 
 #[test]
-#[ignore]
 fn create_chunk_index() {
     test_data::prepare_chunk_index("create_chunk_index");
 }
 
 #[test]
-#[ignore]
 fn add_folders() {
     let chunk_index = test_data::prepare_chunk_index("add_folder");
     let folder1 = test_data::prepare_folder(&chunk_index);
@@ -25,7 +23,6 @@ fn add_folders() {
 }
 
 #[test]
-#[ignore]
 fn add_file() {
     let chunk_index = test_data::prepare_chunk_index("add_file");
     let folder = test_data::prepare_folder(&chunk_index);
@@ -33,7 +30,6 @@ fn add_file() {
 }
 
 #[test]
-#[ignore]
 fn add_chunks() {
     let chunk_index = test_data::prepare_chunk_index("add_chunk");
     let folder = test_data::prepare_folder(&chunk_index);
@@ -50,7 +46,6 @@ fn add_chunks() {
 
 
 #[test]
-#[ignore]
 fn get_all_chunks() {
     let chunk_index = test_data::prepare_chunk_index("get_all_chunks");
     let folder = test_data::prepare_folder(&chunk_index);
@@ -63,7 +58,6 @@ fn get_all_chunks() {
 }
 
 #[test]
-#[ignore]
 fn get_file_path(){
     let chunk_index = test_data::prepare_chunk_index("get_file_path");
     let folder = test_data::prepare_folder(&chunk_index);
