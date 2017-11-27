@@ -35,12 +35,12 @@ pub struct CreateChunkIndex {
 
 impl CreateChunkIndex {
     pub fn new(chunk_index: &ChunkIndex, path: &PathBuf) -> Result<(), BuilderError> {
-        let parentless = Self {
+        let backup_root = Self {
             chunk_index: chunk_index.clone(),
             path: path.clone(),
             parent_folder: None,
         };
-        let parent_folder = parentless.add_folder(path).map_err(|e| BuilderError::from(e))?;
+        let parent_folder = backup_root.add_folder(path).map_err(|e| BuilderError::from(e))?;
 
         let create_chunk_index = Self {
             chunk_index: chunk_index.clone(),
