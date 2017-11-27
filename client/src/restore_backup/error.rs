@@ -4,7 +4,7 @@ use chunk_index::DatabaseError;
 
 quick_error!{
     #[derive(Debug)]
-    pub enum RestoreError {
+    pub enum RestoreBackupError {
         DatabaseError(err: DatabaseError) {
             from()
             cause(err)

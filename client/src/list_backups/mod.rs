@@ -1,5 +1,5 @@
-pub mod list_error;
-pub use self::list_error::ListError;
+pub mod error;
+pub use self::error::ListBackupsError;
 
 use tokio_core;
 use tokio_service::Service;
@@ -13,15 +13,15 @@ use redbackup_protocol::message::*;
 
 use super::config::Config;
 
-pub struct List {
+pub struct ListBackups {
     config: Config,
     event_loop: Core,
     handle: Handle,
 }
 
-impl List {
+impl ListBackups {
     /// Create initial structures to list backups
-    pub fn new(config: Config) -> Result<Self,ListError> {
+    pub fn new(config: Config) -> Result<Self,ListBackupsError> {
         let event_loop = tokio_core::reactor::Core::new()?;
         let handle = event_loop.handle();
 
@@ -32,24 +32,24 @@ impl List {
         })
     }
 
-    pub fn run(&mut self) -> Result<Vec<(String, DateTime<Utc>)>, ListError> {
+    pub fn run(&mut self) -> Result<Vec<(String, DateTime<Utc>)>, ListBackupsError> {
         Ok(self.get_root_handles()?.iter().map(|e| (e.chunk_identifier.clone(), e.expiration_date)).collect())
     }
 
-    fn get_root_handles(&mut self) -> Result<Vec<ChunkContentElement>,ListError> {
+    fn get_root_handles(&mut self) -> Result<Vec<ChunkContentElement>,ListBackupsError> {
         self.message_node_sync(GetRootHandles::new())
             .map(|res| match res.body {
                 MessageKind::ReturnRootHandles(body) => Ok(body.root_handle_chunks),
-                _ => Err(ListError::NodeCommunicationError),
+                _ => Err(ListBackupsError::NodeCommunicationError),
             })?
     }
 
     /// Send a `Message` to the node.
-    fn message_node_sync(&mut self, message: Message) -> Result<Message, ListError> {
+    fn message_node_sync(&mut self, message: Message) -> Result<Message, ListBackupsError> {
         let future = TcpClient::new(RedClientProto)
             .connect(&self.config.addr, &self.handle.clone())
             .and_then(|client| client.call(message));
-        self.event_loop.run(future).map_err(|e| ListError::from(e))
+        self.event_loop.run(future).map_err(|e| ListBackupsError::from(e))
     }
 
 }

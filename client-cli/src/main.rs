@@ -6,7 +6,7 @@ extern crate redbackup_client;
 use std::process;
 
 use redbackup_client::config::{Config, ParseError};
-use redbackup_client::{CreateBackupConfig, CreateBackupConfigError, RestoreConfig, RestoreConfigError};
+use redbackup_client::{CreateBackupConfig, CreateBackupConfigError, RestoreBackupConfig, RestoreBackupConfigError};
 
 use clap::{App, Arg, SubCommand};
 
@@ -116,7 +116,7 @@ fn main() {
                 .unwrap_or_else(|err| eprintln!("Huston, we have a problem! ({})", err));
         },
 
-        ("list", _) => match redbackup_client::list(config) {
+        ("list", _) => match redbackup_client::list_backups(config) {
             Err(err)              => eprintln!("Huston, we have a problem! ({})", err),
             Ok(available_backups) => {
                 println!("{:64} Expiration Date", "Backup ID"); // Backup ID length is hash dependent.
@@ -129,18 +129,18 @@ fn main() {
         ("restore", Some(matches_restore)) => {
             let local_restore_dir = matches_restore.value_of("local-restore-dir").unwrap();
             let backup_id = matches_restore.value_of("backup-id").unwrap();
-            let restore_cfg = RestoreConfig::new(backup_id, local_restore_dir).unwrap_or_else(|err| {
+            let restore_cfg = RestoreBackupConfig::new(backup_id, local_restore_dir).unwrap_or_else(|err| {
                 match err {
-                    RestoreConfigError::NonExistingDirectory(err) => {
+                    RestoreBackupConfigError::NonExistingDirectory(err) => {
                         eprintln!("The given directory '{}' does not exist", err)
                     }
-                    RestoreConfigError::InvalidBackupId(err) => {
+                    RestoreBackupConfigError::InvalidBackupId(err) => {
                         eprintln!("The given backup ID '{}' is invalid", err)
                     },
                 };
                 process::exit(1);
             });
-            redbackup_client::restore(config, restore_cfg)
+            redbackup_client::restore_backup(config, restore_cfg)
                 .unwrap_or_else(|err| eprintln!("Huston, we have a problem! ({})", err));
         },
 

@@ -1,34 +1,34 @@
 use std::path::PathBuf;
 use std::str;
 
-pub struct RestoreConfig {
+pub struct RestoreBackupConfig {
     pub backup_id: String,
     pub restore_dir: PathBuf,
 }
 
 quick_error! {
     #[derive(Debug)]
-    pub enum RestoreConfigError {
+    pub enum RestoreBackupConfigError {
         NonExistingDirectory(dirname: String) {}
         InvalidBackupId(id: String) {}
     }
 }
 
-impl RestoreConfig {
-    pub fn new(backup_id: &str,local_restore_dir: &str) -> Result<RestoreConfig, RestoreConfigError> {
+impl RestoreBackupConfig {
+    pub fn new(backup_id: &str,local_restore_dir: &str) -> Result<RestoreBackupConfig, RestoreBackupConfigError> {
         let restore_dir = PathBuf::from(local_restore_dir);
         if !restore_dir.is_dir() {
-            return Err(RestoreConfigError::NonExistingDirectory(
+            return Err(RestoreBackupConfigError::NonExistingDirectory(
                 local_restore_dir.into(),
             ));
         }
 
         let backup_id = String::from(backup_id);
         if backup_id.len() != 64 { // This validation is hash dependent.
-            return Err(RestoreConfigError::InvalidBackupId(backup_id));
+            return Err(RestoreBackupConfigError::InvalidBackupId(backup_id));
         };
 
-        Ok(RestoreConfig {
+        Ok(RestoreBackupConfig {
             backup_id,
             restore_dir,
         })

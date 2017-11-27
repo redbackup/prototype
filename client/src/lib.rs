@@ -21,12 +21,12 @@ extern crate redbackup_protocol;
 mod tests;
 pub mod config;
 pub mod create_backup;
-pub mod list;
-pub mod restore;
+pub mod list_backups;
+pub mod restore_backup;
 mod chunk_index;
 
 pub use create_backup::config::{CreateBackupConfig, CreateBackupConfigError};
-pub use restore::config::{RestoreConfig, RestoreConfigError};
+pub use restore_backup::config::{RestoreBackupConfig, RestoreBackupConfigError};
 use chrono::prelude::*;
 
 pub fn create_backup(config: config::Config, create_backup_config: CreateBackupConfig) -> Result<(), create_backup::CreateError> {
@@ -36,10 +36,10 @@ pub fn create_backup(config: config::Config, create_backup_config: CreateBackupC
     )?.run()
 }
 
-pub fn list(config: config::Config) -> Result<Vec<(String, DateTime<Utc>)>, list::ListError> {
-    list::List::new(config)?.run()
+pub fn list_backups(config: config::Config) -> Result<Vec<(String, DateTime<Utc>)>, list_backups::ListBackupsError> {
+    list_backups::ListBackups::new(config)?.run()
 }
 
-pub fn restore(config: config::Config, restore_config: RestoreConfig) -> Result<(), restore::RestoreError> {
-    restore::Restore::new(config, restore_config)?.run()
+pub fn restore_backup(config: config::Config, restore_backup_config: RestoreBackupConfig) -> Result<(), restore_backup::RestoreBackupError> {
+    restore_backup::RestoreBackup::new(config, restore_backup_config)?.run()
 }
