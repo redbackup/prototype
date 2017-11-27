@@ -1,4 +1,4 @@
-pub mod chunk_index_builder;
+pub mod create_chunk_index;
 pub mod config;
 pub mod create_error;
 pub mod create_utils;
@@ -20,7 +20,7 @@ use redbackup_protocol::message::*;
 use super::config::Config;
 use super::chunk_index::{ChunkIndex, DatabaseError};
 use super::chunk_index::schema::{Folder, NewFolder, File, NewFile, NewChunk, Chunk};
-use self::chunk_index_builder::ChunkIndexBuilder;
+use self::create_chunk_index::CreateChunkIndex;
 
 pub struct Create {
     config: Config,
@@ -53,8 +53,7 @@ impl Create {
 
     /// The backup process
     pub fn run(&mut self) -> Result<(), CreateError> {
-        let builder = ChunkIndexBuilder::new(&self.chunk_index, &self.create_config.backup_dir)?;
-        builder.build()?;
+        CreateChunkIndex::new(&self.chunk_index, &self.create_config.backup_dir)?;
         info!("The chunk index was built successfully");
 
         self.request_designation()?;
@@ -116,7 +115,7 @@ impl Create {
             })?
     }
 
-    /// Remove `reduction` from `elements` chunks.
+    /// Remove items in vector `reduction` from vector `elements` by the chun_identifier.
     fn reduce_by_remaining_chunks(elements: &mut Vec<Chunk>, reduction: &Vec<ChunkElement>) {
         elements.retain(|e| {
                 reduction.iter().filter(|x| e.chunk_identifier == x.chunk_identifier)

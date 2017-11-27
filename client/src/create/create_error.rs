@@ -1,6 +1,6 @@
 use std::io;
 use chunk_index::DatabaseError;
-use super::chunk_index_builder::BuilderError;
+use super::create_chunk_index::BuilderError;
 
 
 quick_error!{

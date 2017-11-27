@@ -5,7 +5,7 @@ pub mod test_data;
 pub mod chunk_index;
 
 #[cfg(test)]
-pub mod chunk_index_builder;
+pub mod create_chunk_index;
 
 #[cfg(test)]
 pub mod create_utils;

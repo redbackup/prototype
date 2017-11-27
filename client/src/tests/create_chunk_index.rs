@@ -1,26 +1,23 @@
 use super::test_data;
-use create::chunk_index_builder::ChunkIndexBuilder;
+use create::create_chunk_index::CreateChunkIndex;
 
 #[ignore]
 #[test]
 fn new() {
-    let fnname = "chunk_index_builder_new";
-    let chunk_index = test_data::_prepare_chunk_index(fnname);
-    let path = test_data::_prepare_fs_structure(fnname);
-    ChunkIndexBuilder::new(&chunk_index, &path)
+    let fnname = "create_chunk_index_new";
+    let chunk_index = test_data::prepare_chunk_index(fnname);
+    let path = test_data::prepare_fs_structure(fnname);
+    CreateChunkIndex::new(&chunk_index, &path)
         .expect("Could not create chunk index builder");
 }
 
 #[ignore]
 #[test]
 fn build() {
-    let fnname = "chunk_index_builder_build";
-    let chunk_index = test_data::_prepare_chunk_index(fnname);
-    let path = test_data::_prepare_fs_structure(fnname);
-    let builder = ChunkIndexBuilder::new(&chunk_index, &path)
-        .expect("Could not create chunk index builder");
-
-    builder.build().expect("Could not build chunk_index");
+    let fnname = "create_chunk_index_build";
+    let chunk_index = test_data::prepare_chunk_index(fnname);
+    let path = test_data::prepare_fs_structure(fnname);
+    CreateChunkIndex::new(&chunk_index, &path).expect("Could not create chunk index builder");
 
     let chunks = chunk_index.get_all_chunks().expect("Could not get all chunks");
     let mut chunk_identifiers: Vec<String> = chunks.iter().map(|c| c.chunk_identifier.clone()).collect();

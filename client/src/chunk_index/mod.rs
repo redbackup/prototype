@@ -60,12 +60,14 @@ impl ChunkIndex {
         let conn = self.db_pool.get()?;
         diesel::insert(&new_folder).into(self::folders::table).execute(&*conn)?;
 
-        let filtered_folders = dsl::folders.filter(dsl::name.eq(&new_folder.name));
-        let folder = match new_folder.parent_folder {
-            None => filtered_folders.first::<Folder>(&*conn)?,
-            Some(id) => filtered_folders.filter(dsl::parent_folder.eq(id)).first::<Folder>(&*conn)?,
-        };
-        Ok(folder)
+        let query_folder_name = dsl::folders.filter(dsl::name.eq(&new_folder.name));
+        let folder;
+        if let Some(id) = new_folder.parent_folder {
+            folder = query_folder_name.filter(dsl::parent_folder.eq(id)).first::<Folder>(&*conn);
+        } else {
+            folder = query_folder_name.filter(dsl::parent_folder.is_null()).first::<Folder>(&*conn);
+        }
+        folder.map_err(|e| DatabaseError::from(e))
     }
 
     pub fn add_file(&self, new_file: NewFile) -> Result<File,DatabaseError> {

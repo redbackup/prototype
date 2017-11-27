@@ -27,14 +27,14 @@ quick_error! {
     }
 }
 
-pub struct ChunkIndexBuilder {
+pub struct CreateChunkIndex {
     chunk_index: ChunkIndex,
     path: PathBuf,
     parent_folder: Option<Folder>,
 }
 
-impl ChunkIndexBuilder {
-    pub fn new(chunk_index: &ChunkIndex, path: &PathBuf) -> Result<Self, BuilderError> {
+impl CreateChunkIndex {
+    pub fn new(chunk_index: &ChunkIndex, path: &PathBuf) -> Result<(), BuilderError> {
         let parentless = Self {
             chunk_index: chunk_index.clone(),
             path: path.clone(),
@@ -42,14 +42,15 @@ impl ChunkIndexBuilder {
         };
         let parent_folder = parentless.add_folder(path).map_err(|e| BuilderError::from(e))?;
 
-        Ok(Self {
+        let create_chunk_index = Self {
             chunk_index: chunk_index.clone(),
             path: path.clone(),
             parent_folder: Some(parent_folder),
-        })
+        };
+        create_chunk_index.build()
     }
 
-    pub fn build(self) -> Result<(), BuilderError> {
+    fn build(self) -> Result<(), BuilderError> {
         for entry in self.path.read_dir()? {
             let entry = entry?;
             match entry.file_type() {
