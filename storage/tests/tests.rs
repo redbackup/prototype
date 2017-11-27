@@ -55,6 +55,7 @@ fn persist_and_get_data() {
     storage.persist(identifier, &expected_data).unwrap();
     let loaded_data = storage.get(identifier).unwrap();
     assert_eq!(loaded_data, expected_data);
+    storage.verify(identifier).unwrap();
     storage.delete(identifier).unwrap();
 }
 
@@ -81,4 +82,15 @@ fn ensure_get_nonexisting_chunk_fails() {
     let identifier = "c1fcd4dd4dc0ee9208d7b9c6608b91bde8eee91b09bc5b4928b9371d5bdab16d";
     let err = storage.get(identifier).unwrap_err();
     assert_eq!(format!("{}", err), format!("The chunk with the identifier {} is not persisted", identifier));
+}
+
+#[test]
+fn ensure_corrupted_chunk_is_detected() {
+    let storage = _setup_empty_storage("ensure_corrupted_chunk_is_detected");
+    let identifier = "5561330f1959d3e0491b1c4b2133b453f8ff545436346c0698a9cf9898d90be3";
+    let actual_identifier = "c1fcd4dd4dc0ee9208d7b9c6608b91bde8eee91b09bc5b4928b9371d5bdab16d";
+    let expected_data = _read_data("tests/data/lorem.txt");
+    storage.persist(identifier, &expected_data).unwrap();
+    let err = storage.verify(identifier).unwrap_err();
+    assert_eq!(format!("{}", err), format!("The chunk with identifier {} produces another digest than its identifier (actual: {})", identifier, actual_identifier));
 }
