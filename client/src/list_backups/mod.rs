@@ -20,7 +20,6 @@ pub struct ListBackupsContext {
 }
 
 impl ListBackupsContext {
-    /// Create initial structures to list backups
     pub fn new(config: Config) -> Result<Self,ListBackupsError> {
         let event_loop = tokio_core::reactor::Core::new()?;
         let handle = event_loop.handle();
@@ -51,5 +50,4 @@ impl ListBackupsContext {
             .and_then(|client| client.call(message));
         self.event_loop.run(future).map_err(|e| ListBackupsError::from(e))
     }
-
 }

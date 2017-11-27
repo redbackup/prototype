@@ -11,8 +11,6 @@ pub fn restore_file_content(content: &[u8], path: &PathBuf) -> Result<(), Error>
 }
 
 pub fn create_folder(path: &PathBuf) -> Result<(), Error> {
-    DirBuilder::new()
-        .recursive(true)
-        .create(path)?;
+    DirBuilder::new().recursive(true).create(path)?;
     Ok(())
 }

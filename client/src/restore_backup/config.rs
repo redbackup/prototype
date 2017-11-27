@@ -15,7 +15,10 @@ quick_error! {
 }
 
 impl RestoreBackupConfig {
-    pub fn new(backup_id: &str,local_restore_dir: &str) -> Result<RestoreBackupConfig, RestoreBackupConfigError> {
+    pub fn new(
+        backup_id: &str,
+        local_restore_dir: &str,
+    ) -> Result<RestoreBackupConfig, RestoreBackupConfigError> {
         let restore_dir = PathBuf::from(local_restore_dir);
         if !restore_dir.is_dir() {
             return Err(RestoreBackupConfigError::NonExistingDirectory(
@@ -24,7 +27,8 @@ impl RestoreBackupConfig {
         }
 
         let backup_id = String::from(backup_id);
-        if backup_id.len() != 64 { // This validation is hash dependent.
+        if backup_id.len() != 64 {
+            // This validation is hash dependent.
             return Err(RestoreBackupConfigError::InvalidBackupId(backup_id));
         };
 

@@ -1,6 +1,6 @@
 pub mod config;
 pub mod error;
-mod utils;
+pub mod utils;
 pub use self::error::RestoreBackupError;
 pub use self::config::RestoreBackupConfig;
 
@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use tokio_core;
 use tokio_service::Service;
 use tokio_proto::TcpClient;
-use tokio_core::reactor::{Core,Handle};
+use tokio_core::reactor::{Core, Handle};
 use futures::*;
 
 use chrono::prelude::*;
@@ -30,7 +30,10 @@ pub struct RestoreBackupContext {
 
 impl RestoreBackupContext {
     /// Create initial structures for a restore.
-    pub fn new(config: Config, restore_config: RestoreBackupConfig) -> Result<Self,RestoreBackupError> {
+    pub fn new(
+        config: Config,
+        restore_config: RestoreBackupConfig,
+    ) -> Result<Self, RestoreBackupError> {
         let event_loop = tokio_core::reactor::Core::new()?;
         let handle = event_loop.handle();
 
@@ -52,26 +55,30 @@ impl RestoreBackupContext {
         Self::restore_folder_structure(&self.restore_config.restore_dir, &chunk_index, None)?;
 
         info!("Restoring");
-        self.request_chunks(&chunk_index)?;
-//        self.restore_files(&chunk_index, chunks)?;
+        self.restore_chunks(&chunk_index)?;
+        info!("Successfully finished restoring all files.");
 
         Ok(())
     }
 
 
-    fn restore_chunk_index(&mut self) -> Result<ChunkIndex,RestoreBackupError> {
-        let message = GetChunks::new(vec!(self.restore_config.backup_id.clone()));
+    fn restore_chunk_index(&mut self) -> Result<ChunkIndex, RestoreBackupError> {
+        let message = GetChunks::new(vec![self.restore_config.backup_id.clone()]);
         let request = TcpClient::new(RedClientProto)
             .connect(&self.config.addr, &self.handle.clone())
             .and_then(|client| client.call(message));
-        let response = self.event_loop.run(request).map_err(|e| RestoreBackupError::from(e))?;
-        let chunks = match response.body {
-                MessageKind::ReturnChunks(body) => Some(body.chunks),
-                    _ => None,
-                }.ok_or(RestoreBackupError::NodeCommunicationError)?;
+        let response = self.event_loop.run(request).map_err(
+            |e| RestoreBackupError::from(e),
+        )?;
 
-        let chunk: &ChunkContentElement = chunks.get(0)
-            .ok_or(RestoreBackupError::RootHandleChunkNotAvailable(self.restore_config.backup_id.clone()))?;
+        let chunks = match response.body {
+            MessageKind::ReturnChunks(body) => Some(body.chunks),
+            _ => None,
+        }.ok_or(RestoreBackupError::NodeCommunicationError)?;
+
+        let chunk: &ChunkContentElement = chunks.get(0).ok_or(
+            RestoreBackupError::RootHandleChunkNotAvailable(self.restore_config.backup_id.clone()),
+        )?;
 
         let now = Utc::now();
         let path = PathBuf::from(format!("/tmp/{}.db", now.to_rfc3339()));
@@ -79,7 +86,11 @@ impl RestoreBackupContext {
         Ok(ChunkIndex::new(path, now)?)
     }
 
-    fn restore_folder_structure(root_folder: &PathBuf, chunk_index: &ChunkIndex, parent_folder_id: Option<i32>) -> Result<(),RestoreBackupError> {
+    fn restore_folder_structure(
+        root_folder: &PathBuf,
+        chunk_index: &ChunkIndex,
+        parent_folder_id: Option<i32>,
+    ) -> Result<(), RestoreBackupError> {
         let folders = chunk_index.get_folders_by_parent(parent_folder_id)?;
         let path = root_folder;
 
@@ -87,47 +98,48 @@ impl RestoreBackupContext {
             let mut path = path.clone();
             path.push(&folder.name);
             utils::create_folder(&path)?;
-            debug!("RestoreBackupd folder {:?}", path);
+            debug!("Restored folder {:?}", path);
             Self::restore_folder_structure(&path, &chunk_index, Some(folder.id))?;
         }
         Ok(())
     }
 
-    fn request_chunks(
-        &mut self,
-        chunk_index: &ChunkIndex
-    ) -> Result<(), RestoreBackupError>{
+    fn restore_chunks(&mut self, chunk_index: &ChunkIndex) -> Result<(), RestoreBackupError> {
+        for chunk in chunk_index.get_all_chunks()? {
+            let chunk_content = self.request_chunk(chunk.chunk_identifier.clone())?;
 
-        let chunks = chunk_index.get_all_chunks()?;
-
-        for chunk in chunks {
-            let message = GetChunks::new(vec!(chunk.chunk_identifier.clone()));
-            let request = TcpClient::new(RedClientProto)
-                .connect(&self.config.addr, &self.handle.clone())
-                .and_then(|client| client.call(message))
-                .and_then(|response|{
-                    match response.body {
-                        MessageKind::ReturnChunks(body) => Ok(body.chunks),
-                            _ => Err(io::Error::new(io::ErrorKind::Other, "Chunk not contained in node response")),
-                        }
-                });
-            let chunk_contents = self.event_loop.run(request).map_err(|e| RestoreBackupError::from(e))?;
-            // TODO: Refactor the following
-            let chunk_content = chunk_contents.get(0).ok_or(RestoreBackupError::ChunkNotAvailable(chunk.chunk_identifier.clone()))?;
             let mut path = self.restore_config.restore_dir.clone();
-            chunk_index.get_file_path(chunk.file)?.iter().for_each(|e| path.push(e));
+            path.pop(); // The last folder here is the same as the root folder of the file
+            path.push(chunk_index.get_file_path(chunk.file)?);
+
             utils::restore_file_content(&chunk_content.chunk_content.as_slice(), &path)?;
         }
-
         Ok(())
     }
-/*
-    fn restore_files(
+
+    fn request_chunk(
         &mut self,
-        chunk_index: &ChunkIndex,
-        chunks: Vec<Box<Future<Item=ChunkContentElement, Error=RestoreBackupError>>>
-    ) -> Result<(), RestoreBackupError>{
-        unimplemented!()
+        chunk_identifier: String,
+    ) -> Result<ChunkContentElement, RestoreBackupError> {
+        let message = GetChunks::new(vec![chunk_identifier.clone()]);
+        let request = TcpClient::new(RedClientProto)
+            .connect(&self.config.addr, &self.handle.clone())
+            .and_then(|client| client.call(message))
+            .and_then(|response| match response.body {
+                MessageKind::ReturnChunks(body) => Ok(body.chunks),
+                _ => Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "Chunk not contained in node response",
+                )),
+            });
+        let mut chunk_contents = self.event_loop.run(request).map_err(
+            |e| RestoreBackupError::from(e),
+        )?;
+
+        chunk_contents.pop().ok_or(
+            RestoreBackupError::ChunkNotAvailable(
+                chunk_identifier.clone(),
+            ),
+        )
     }
-    */
 }
