@@ -25,6 +25,7 @@ pub mod config;
 mod service;
 mod chunk_table;
 mod schedule;
+mod utils;
 
 #[cfg(test)]
 mod tests;
@@ -50,7 +51,12 @@ pub fn run(config: Config) {
         let storage = Storage::new(config.storage_location.clone()).unwrap();
 
         debug!("setting up schedule...");
-        schedule::setup(handle.clone(), chunk_table.clone(), storage.clone());
+        schedule::setup(
+            handle.clone(),
+            chunk_table.clone(),
+            storage.clone(),
+            config.known_nodes.clone(),
+        );
 
         move || {
             debug!("instantiate new service...");
