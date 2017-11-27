@@ -50,7 +50,7 @@ pub fn run(config: Config) {
         let storage = Storage::new(config.storage_location.clone()).unwrap();
 
         debug!("setting up schedule...");
-        schedule::setup(handle.clone(), storage.clone());
+        schedule::setup(handle.clone(), chunk_table.clone(), storage.clone());
 
         move || {
             debug!("instantiate new service...");

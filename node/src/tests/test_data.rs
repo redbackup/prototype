@@ -14,6 +14,20 @@ impl ExampleChunk {
             true,
         )
     }
+    pub fn two() -> Chunk {
+        Self::new(
+            "533f05fc11c16e51f700b8f0be6440eea1579886aaa6eb70fba7982fa9043350",
+            NaiveDate::from_ymd(2017, 9, 21).and_hms_milli(2, 4, 0, 1),
+            true,
+        )
+    }
+    pub fn three() -> Chunk {
+        Self::new(
+            "18796cf89632a1efd42f42248f2428b94be593980b03a56fe241b552f3f4bb44",
+            NaiveDate::from_ymd(2011, 12, 8).and_hms_milli(7, 2, 12, 33),
+            true,
+        )
+    }
 
     fn new(chunk_identifier: &str, expiration_date: NaiveDateTime, root_handle: bool) -> Chunk {
         Chunk {
