@@ -100,23 +100,27 @@ impl ChunkIndex {
         use self::files;
         let conn = self.db_pool.get()?;
 
-        let file = files::dsl::files.filter(files::dsl::id.eq(&file_id)).first::<File>(&*conn)?;
-        let mut parent_id = file.folder;
-        let mut path_vec = vec!(file.name.clone());
-        let mut path = PathBuf::new();
+        conn.transaction::<_, DatabaseError, _>(|| {
 
-        loop {
-            let folder = dsl::folders.filter(dsl::id.eq(parent_id)).first::<Folder>(&*conn)?;
-            path_vec.push(folder.name.clone());
+            let file = files::dsl::files.filter(files::dsl::id.eq(&file_id)).first::<File>(&*conn)?;
+            let mut parent_id = file.folder;
+            let mut path_vec = vec!(file.name.clone());
+            let mut path = PathBuf::new();
 
-            if let Some(parent) = folder.parent_folder {
-                parent_id = parent;
-            } else {
-                break;
+            loop {
+                let folder = dsl::folders.filter(dsl::id.eq(parent_id)).first::<Folder>(&*conn)?;
+                path_vec.push(folder.name.clone());
+
+                if let Some(parent) = folder.parent_folder {
+                    parent_id = parent;
+                } else {
+                    break;
+                }
             }
-        }
-        path_vec.reverse();
-        path_vec.iter().for_each(|e| path.push(e));
-        Ok(path)
+
+            path_vec.reverse();
+            path_vec.iter().for_each(|e| path.push(e));
+            Ok(path)
+        })
     }
 }
