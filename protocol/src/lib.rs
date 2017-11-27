@@ -96,9 +96,9 @@ impl Encoder for RedCodec {
 }
 
 pub fn decode_message(buf: &mut BytesMut) -> io::Result<Option<Message>> {
-        let mut de = Deserializer::new(&buf[..]);
-        Deserialize::deserialize(&mut de)
-            .map_err(|err| io::Error::new(io::ErrorKind::Other, err))
+    let mut de = Deserializer::new(&buf[..]);
+    Deserialize::deserialize(&mut de)
+        .map_err(|err| io::Error::new(io::ErrorKind::Other, err))
 }
 
 pub fn encode_message(msg: Message, buf: &mut BytesMut) -> io::Result<()> {
@@ -106,4 +106,62 @@ pub fn encode_message(msg: Message, buf: &mut BytesMut) -> io::Result<()> {
     msg.serialize(&mut Serializer::new(&mut vec))
         .map(move |_|buf.extend_from_slice(&vec))
         .map_err(|err| io::Error::new(io::ErrorKind::Other, err))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use super::message::ReturnDesignation;
+    use chrono::{Utc, TimeZone};
+    use bytes::BufMut;
+    use std::error::Error;
+
+    #[test]
+    fn decode_broken_incomming_message() {
+        let mut buf = BytesMut::with_capacity(1024);
+        buf.put(&b"\x00"[..]);
+        let err = decode_message(&mut buf).unwrap_err();
+        assert_eq!(err.kind(), io::ErrorKind::Other);
+        assert_eq!(err.description(), "error while decoding value");
+    }
+
+    #[test]
+    fn test_encode_outgoing_message() {
+        let mut buf = BytesMut::with_capacity(1024);
+        let msg =  Message {
+            timestamp: Utc.ymd(2014, 11, 28).and_hms_milli(7, 8, 9, 10),
+            body: MessageKind::ReturnDesignation(ReturnDesignation {designation: false, }),
+        };
+        encode_message(msg, &mut buf).unwrap();
+        // Debug with: https://kawanet.github.io/msgpack-lite/
+        let expected = vec![146, 184, 50, 48, 49, 52, 45, 49, 49, 45, 50, 56, 84, 48, 55, 58, 48, 56, 58, 48, 57, 46, 48, 49, 48, 90, 146, 1, 145, 145, 194];
+        assert_eq!(buf, expected[..]);
+    }
+
+     #[test]
+    fn test_encode_incomming_message() {
+        let mut buf = BytesMut::with_capacity(1024);
+        // Debug with: https://kawanet.github.io/msgpack-lite/
+        let raw = vec![146, 184, 50, 48, 49, 52, 45, 49, 49, 45, 50, 56, 84, 48, 55, 58, 48, 56, 58, 48, 57, 46, 48, 49, 48, 90, 146, 1, 145, 145, 194];
+        buf.put(raw);
+
+        let actual = decode_message(&mut buf).unwrap().unwrap();
+        let expected =  Message {
+            timestamp: Utc.ymd(2014, 11, 28).and_hms_milli(7, 8, 9, 10),
+            body: MessageKind::ReturnDesignation(ReturnDesignation {designation: false, }),
+        };
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_encode_incomming_message_with_invalid_contents() {
+        let mut buf = BytesMut::with_capacity(1024);
+        // Debug with: https://kawanet.github.io/msgpack-lite/
+        let raw = vec![146, 184, 50, 48, 49, 52, 45, 49, 49, 45, 50, 56, 84, 48, 55, 58, 48, 56, 58, 48, 57, 46, 48, 49, 48, 90, 146, 205, 4, 215, 145, 145, 194];
+        buf.put(raw);
+
+        let err = decode_message(&mut buf).unwrap_err();
+        assert_eq!(err.kind(), io::ErrorKind::Other);
+        assert_eq!(err.description(), "error while decoding value");
+    }
 }
