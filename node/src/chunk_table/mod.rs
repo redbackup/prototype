@@ -49,11 +49,15 @@ impl Clone for ChunkTable {
 
 impl ChunkTable {
     pub fn new(database_url: &str) -> Result<Self, DatabaseError> {
+        debug!("Connect to chunk table database {}", database_url);
         let config = Config::default();
         let manager = ConnectionManager::<SqliteConnection>::new(database_url);
         let db_pool = Pool::new(config, manager)?;
         let conn = db_pool.get()?;
+        debug!("Run chunk table database migrations");
         embedded_migrations::run(&*conn)?;
+
+        debug!("Finished creating chunk table");
         Ok(ChunkTable { db_pool })
     }
 
@@ -84,6 +88,7 @@ impl ChunkTable {
 
     pub fn update_chunk(&self, chunky: &Chunk) -> Result<Chunk, DatabaseError> {
         let conn = self.db_pool.get()?;
+        trace!("Update chunk {} as transaction", chunky.chunk_identifier);
         conn.transaction::<_, DatabaseError, _>(|| {
             let db_chunk: Chunk = chunks::dsl::chunks
                 .find(&chunky.chunk_identifier)
@@ -102,6 +107,7 @@ impl ChunkTable {
             changed = changed || root_handle != db_chunk.root_handle;
 
             if changed {
+                trace!("Write updated chunk {} to database", chunky.chunk_identifier);
                 diesel::update(chunks::dsl::chunks.find(&chunky.chunk_identifier))
                     .set((
                         chunks::dsl::expiration_date.eq(expiration_date),

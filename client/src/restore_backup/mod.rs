@@ -48,22 +48,24 @@ impl RestoreBackupContext {
     /// The restore process
     pub fn run(&mut self) -> Result<(), RestoreBackupError> {
 
-        info!("Restoring chunk index");
+        info!("Restore chunk index");
         let chunk_index = self.restore_chunk_index()?;
 
-        info!("Restoring folder structure");
+        info!("Restore folder structure");
         Self::restore_folder_structure(&self.restore_config.restore_dir, &chunk_index, None)?;
 
-        info!("Restoring");
+        info!("Restore files");
         self.restore_chunks(&chunk_index)?;
-        info!("Successfully finished restoring all files.");
 
+        info!("Successfully finished restoring all files.");
         Ok(())
     }
 
 
     fn restore_chunk_index(&mut self) -> Result<ChunkIndex, RestoreBackupError> {
-        let message = GetChunks::new(vec![self.restore_config.backup_id.clone()]);
+        let chunk_identifier = &self.restore_config.backup_id;
+        debug!("Request chunk index {}", chunk_identifier);
+        let message = GetChunks::new(vec![chunk_identifier.clone()]);
         let request = TcpClient::new(RedClientProto)
             .connect(&self.config.addr, &self.handle.clone())
             .and_then(|client| client.call(message));
@@ -77,7 +79,7 @@ impl RestoreBackupContext {
         }.ok_or(RestoreBackupError::NodeCommunicationError)?;
 
         let chunk: &ChunkContentElement = chunks.get(0).ok_or(
-            RestoreBackupError::RootHandleChunkNotAvailable(self.restore_config.backup_id.clone()),
+            RestoreBackupError::RootHandleChunkNotAvailable(chunk_identifier.clone()),
         )?;
 
         let now = Utc::now();
@@ -91,14 +93,15 @@ impl RestoreBackupContext {
         chunk_index: &ChunkIndex,
         parent_folder_id: Option<i32>,
     ) -> Result<(), RestoreBackupError> {
+        debug!("Request folder by parent id (if any) {:?} from chunk index", parent_folder_id);
         let folders = chunk_index.get_folders_by_parent(parent_folder_id)?;
         let path = root_folder;
 
         for folder in folders {
+            debug!("Restore folder {:?}", path);
             let mut path = path.clone();
             path.push(&folder.name);
             utils::create_folder(&path)?;
-            debug!("Restored folder {:?}", path);
             Self::restore_folder_structure(&path, &chunk_index, Some(folder.id))?;
         }
         Ok(())
@@ -106,8 +109,10 @@ impl RestoreBackupContext {
 
     fn restore_chunks(&mut self, chunk_index: &ChunkIndex) -> Result<(), RestoreBackupError> {
         for chunk in chunk_index.get_all_chunks()? {
+            debug!("Request chunk {}", chunk.chunk_identifier);
             let chunk_content = self.request_chunk(chunk.chunk_identifier.clone())?;
 
+            debug!("Restore path for chunk {}", chunk_content.chunk_identifier);
             let mut path = self.restore_config.restore_dir.clone();
             path.push(chunk_index.get_file_path(chunk.file)?);
 

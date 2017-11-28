@@ -35,6 +35,7 @@ pub struct CreateChunkIndex {
 
 impl CreateChunkIndex {
     pub fn new(chunk_index: &ChunkIndex, path: &PathBuf) -> Result<(), BuilderError> {
+        debug!("Create chunk index root folder");
         let backup_root = Self {
             chunk_index: chunk_index.clone(),
             path: path.clone(),
@@ -47,10 +48,15 @@ impl CreateChunkIndex {
             path: path.clone(),
             parent_folder: Some(parent_folder),
         };
-        create_chunk_index.build()
+
+        debug!("Start building chunk index");
+        let result = create_chunk_index.build();
+        debug!("Finished building chunk index");
+        result
     }
 
     fn build(self) -> Result<(), BuilderError> {
+        debug!("Read content of path {:?}", self.path);
         for entry in self.path.read_dir()? {
             let entry = entry?;
             match entry.file_type() {
@@ -67,7 +73,7 @@ impl CreateChunkIndex {
                     }.build()?;
                 },
 
-                Ok(filetype) => error!("The file type {:?} of file {:?} is not implemented",
+                Ok(filetype) => warn!("The file type {:?} of file {:?} is not implemented",
                                        filetype, entry.file_name()),
                 _            => error!("Could not read file type of {:?}", entry.file_name()),
             }
@@ -89,6 +95,7 @@ impl CreateChunkIndex {
 
         let chunk_identifier = create_utils::file_hash(&file_entry.path())?;
 
+        debug!("Add chunk {} to chunk index", chunk_identifier);
         self.chunk_index.add_chunk(NewChunk{
             chunk_identifier,
             file: file.id,
@@ -107,6 +114,7 @@ impl CreateChunkIndex {
             None => None,
         };
 
+        debug!("Add folder {} to chunk index", name);
         self.chunk_index.add_folder(NewFolder { name, parent_folder }).map_err(|e| BuilderError::from(e))
     }
 }

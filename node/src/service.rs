@@ -25,6 +25,7 @@ impl Service for NodeService {
     type Future = Box<Future<Item = Self::Response, Error = io::Error>>;
 
     fn call(&self, request: Message) -> Self::Future {
+        trace!("Handle request message {:?}", request);
         match request.body {
             MessageKind::GetDesignation(_) => self.handle_designation(),
             MessageKind::GetChunkStates(body) => self.handle_get_chunk_states(body),
@@ -46,12 +47,14 @@ impl NodeService {
     }
 
     fn handle_unknown(&self) -> Box<Future<Item = Message, Error = io::Error>> {
+        error!("Received unknown message kind");
         Box::new(future::ok(
             InvalidRequest::new("Node cannot handle this message kind"),
         ))
     }
 
     fn handle_designation(&self) -> Box<Future<Item = Message, Error = io::Error>> {
+        info!("Grant designation");
         Box::new(future::ok(ReturnDesignation::new(true)))
     }
 
@@ -59,11 +62,15 @@ impl NodeService {
         &self,
         body: GetChunkStates,
     ) -> Box<Future<Item = Message, Error = io::Error>> {
+        info!("Return chunk states");
         let chunk_table = self.chunk_table.clone();
         Box::new(self.cpu_pool.spawn_fn(move || -> Result<_, io::Error> {
             let db_chunks = body.chunks.into_iter().map(Chunk::from).collect();
+            debug!("Request state of chunks {:?} from chunk table", db_chunks);
             let result = chunk_table.get_and_update_chunks(db_chunks);
             if let Ok(results) = result {
+                info!("Send available chunks to client");
+                debug!("Available chunks: {:?}", results);
                 Ok(ReturnChunkStates::new(
                     results.into_iter().map(Chunk::into).collect(),
                 ))
@@ -78,6 +85,7 @@ impl NodeService {
         &self,
         body: PostChunks,
     ) -> Box<Future<Item = Message, Error = io::Error>> {
+        info!("Store posted chunks");
         let chunk_table = self.chunk_table.clone();
         let storage = self.storage.clone();
 
@@ -89,16 +97,17 @@ impl NodeService {
                     &chunk_content.chunk_identifier,
                     &chunk_content.chunk_content,
                 ) {
-                    warn!("Failed to persist new chunk: {:?}", err.description());
+                    error!("Failed to persist new chunk: {:?}", err.description());
                     continue;
                 }
 
                 let chunk = Chunk::from(chunk_content);
                 let result = chunk_table.add_chunk(&chunk);
                 if let Ok(new_chunk) = result {
+                    debug!("Successfully stored chunk {}", new_chunk.chunk_identifier);
                     results.push(new_chunk);
                 } else {
-                    warn!("Failed to insert new chunk: {:?}", result.unwrap_err());
+                    error!("Failed to insert new chunk: {:?}", result.unwrap_err());
                 }
             }
 
@@ -109,10 +118,12 @@ impl NodeService {
     }
 
     fn handle_return_root_handles(&self) -> Box<Future<Item = Message, Error = io::Error>> {
+        info!("Return root handles");
         let chunk_table = self.chunk_table.clone();
         let storage = self.storage.clone();
 
         Box::new(self.cpu_pool.spawn_fn(move || -> Result<_, io::Error> {
+            debug!("Get root handles from chunk table");
             match chunk_table.get_root_handles() {
                 Ok(chunks) => {
                     let chunks = chunks
@@ -131,20 +142,23 @@ impl NodeService {
         }))
     }
     fn handle_get_chunks(&self, body: GetChunks) -> Box<Future<Item = Message, Error = io::Error>> {
+        info!("Return chunks");
         let chunk_table = self.chunk_table.clone();
         let storage = self.storage.clone();
 
         Box::new(self.cpu_pool.spawn_fn(move || -> Result<_, io::Error> {
             let mut results = Vec::new();
             for chunk_identifier in body.chunk_identifiers {
+                debug!("Get chunk {} from chunk table", chunk_identifier);
                 if let Ok(chunk) = chunk_table.get_chunk(&chunk_identifier) {
                     if let Some(chunk_content_element) =
                         chunk_to_chunk_contents_element(chunk, &storage)
                     {
+                        debug!("Successfully received chunk {} from storage", chunk_content_element.chunk_identifier);
                         results.push(chunk_content_element);
                     }
                 } else {
-                    warn!("Failed to load chunk {}", chunk_identifier);
+                    warn!("Failed to load requested chunk {}", chunk_identifier);
                 }
             }
             Ok(ReturnChunks::new(results))

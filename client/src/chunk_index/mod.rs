@@ -41,13 +41,16 @@ pub struct ChunkIndex {
 
 impl ChunkIndex {
     pub fn new(file_name: PathBuf, creation_date: DateTime<Utc>) -> Result<Self, DatabaseError> {
+        debug!("Connect to Database {:?}", file_name);
         let config = Config::default();
         let manager = ConnectionManager::<SqliteConnection>::new(file_name.to_string_lossy());
         let db_pool = Pool::new(config, manager)?;
 
         let conn = db_pool.get()?;
+        debug!("Run Database migrations");
         embedded_migrations::run(&*conn)?;
 
+        debug!("Finished creating chunk index");
         Ok(ChunkIndex { db_pool, file_name, creation_date })
     }
 

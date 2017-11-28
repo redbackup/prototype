@@ -112,12 +112,11 @@ fn main() {
                 };
                 process::exit(1);
             });
-            redbackup_client::create_backup(config, backup_cfg)
-                .unwrap_or_else(|err| eprintln!("Huston, we have a problem! ({})", err));
+            redbackup_client::create_backup(config, backup_cfg).unwrap_or_else(|err| handle_error(err));
         },
 
         ("list", _) => match redbackup_client::list_backups(config) {
-            Err(err)              => eprintln!("Huston, we have a problem! ({})", err),
+            Err(err)              => handle_error(err),
             Ok(available_backups) => {
                 println!("{:64} Expiration Date", "Backup ID"); // Backup ID length is hash dependent.
                 for backup in available_backups {
@@ -140,10 +139,16 @@ fn main() {
                 };
                 process::exit(1);
             });
-            redbackup_client::restore_backup(config, restore_cfg)
-                .unwrap_or_else(|err| eprintln!("Huston, we have a problem! ({})", err));
+            redbackup_client::restore_backup(config, restore_cfg).unwrap_or_else(|err| handle_error(err));
         },
 
         (&_, _) => eprintln!("No command was used!"),
     }
+}
+
+fn handle_error<T: std::error::Error>(err: T) {
+    eprintln!("Huston, we have a problem! An unexpected error occured.");
+    eprintln!("Description: {}", err.description());
+    eprintln!("Cause (if any): {:?}", err.cause());
+    process::exit(1);
 }

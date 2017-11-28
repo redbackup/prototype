@@ -40,6 +40,7 @@ pub fn run(config: Config) {
     let chunk_table = ChunkTable::new(&config.db_location).unwrap();
     let cpu_pool = CpuPool::new_num_cpus();
     let storage = Storage::new(config.storage_location).unwrap();
+    info!("Start Server");
     TcpServer::new(RedServerProto, config.addr).serve(move || {
         Ok(NodeService::new(
             cpu_pool.clone(),

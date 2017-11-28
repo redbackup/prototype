@@ -17,6 +17,7 @@ extern crate log;
 pub mod message;
 
 use std::io;
+use std::error::Error;
 
 pub use message::Message;
 pub use message::MessageKind;
@@ -66,15 +67,16 @@ impl Decoder for RedCodec {
         if len == 0 {
             return Ok(None)
         }
-        debug!("Started decoding message");
+        debug!("Start decoding message");
         match decode_message(buf) {
             Err(e) => {
-                debug!("Failed decoding message ({:?})", e);
+                debug!("Failed decoding message (description: {}, cause: {:?})", e.description(), e.cause());
+                trace!("Buffer content: {:?}", buf);
                 Ok(None)
             },
             Ok(m) => {
                 if m.is_some() {
-                    debug!("Message decoded");
+                    debug!("Message decoded successfully (to len {})", len);
                     buf.split_to(len);
                 }
                 Ok(m)
@@ -88,9 +90,10 @@ impl Encoder for RedCodec {
     type Error = io::Error;
 
     fn encode(&mut self, msg: Message, buf: &mut BytesMut) -> io::Result<()> {
-        debug!("Started encoding message");
+        debug!("Start encoding message");
+        trace!("Message: {:?}", msg);
         let m = encode_message(msg, buf);
-        debug!("message encoded");
+        debug!("Message encoded successfully");
         m
     }
 }
