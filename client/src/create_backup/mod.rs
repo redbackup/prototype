@@ -68,7 +68,12 @@ impl CreateBackupContext {
     /// The backup process
     pub fn run(&mut self) -> Result<(), CreateError> {
         info!("Create chunk index from {:?}", self.create_backup_config.backup_dir);
-        CreateChunkIndex::new(&self.chunk_index, &self.create_backup_config.backup_dir)?;
+        CreateChunkIndex::new(
+            &self.chunk_index,
+            &self.create_backup_config.backup_dir,
+            &self.create_backup_config.exclude,
+        )?;
+        info!("The chunk index was built successfully");
 
         info!("Request designation from node");
         self.request_designation()?;
