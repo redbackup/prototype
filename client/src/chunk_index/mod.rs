@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use r2d2;
 use diesel;
 use r2d2::{Config,Pool};
@@ -7,7 +9,6 @@ use chrono::prelude::*;
 use diesel::prelude::*;
 
 pub mod schema;
-#[cfg(test)] mod tests;
 
 use self::schema::*;
 
@@ -34,20 +35,24 @@ quick_error! {
 #[derive(Clone)]
 pub struct ChunkIndex {
     db_pool: Pool<ConnectionManager<SqliteConnection>>,
-    file_name: String,
+    file_name: PathBuf,
     creation_date: DateTime<Utc>
 }
 
 impl ChunkIndex {
-    pub fn new(file_name: &str, creation_date: DateTime<Utc>) -> Result<Self, DatabaseError> {
+    pub fn new(file_name: PathBuf, creation_date: DateTime<Utc>) -> Result<Self, DatabaseError> {
         let config = Config::default();
-        let manager = ConnectionManager::<SqliteConnection>::new(file_name);
+        let manager = ConnectionManager::<SqliteConnection>::new(file_name.to_string_lossy());
         let db_pool = Pool::new(config, manager)?;
 
         let conn = db_pool.get()?;
         embedded_migrations::run(&*conn)?;
 
-        Ok(ChunkIndex { db_pool, file_name: String::from(file_name), creation_date })
+        Ok(ChunkIndex { db_pool, file_name, creation_date })
+    }
+
+    pub fn get_file_name(&self) -> PathBuf {
+        self.file_name.clone()
     }
 
     pub fn add_folder(&self, new_folder: NewFolder) -> Result<Folder,DatabaseError> {
@@ -55,12 +60,14 @@ impl ChunkIndex {
         let conn = self.db_pool.get()?;
         diesel::insert(&new_folder).into(self::folders::table).execute(&*conn)?;
 
-        let filtered_folders = dsl::folders.filter(dsl::name.eq(&new_folder.name));
-        let folder = match new_folder.parent_folder {
-            None => filtered_folders.first::<Folder>(&*conn)?,
-            Some(id) => filtered_folders.filter(dsl::parent_folder.eq(id)).first::<Folder>(&*conn)?,
-        };
-        Ok(folder)
+        let query_folder_name = dsl::folders.filter(dsl::name.eq(&new_folder.name));
+        let folder;
+        if let Some(id) = new_folder.parent_folder {
+            folder = query_folder_name.filter(dsl::parent_folder.eq(id)).first::<Folder>(&*conn);
+        } else {
+            folder = query_folder_name.filter(dsl::parent_folder.is_null()).first::<Folder>(&*conn);
+        }
+        folder.map_err(|e| DatabaseError::from(e))
     }
 
     pub fn add_file(&self, new_file: NewFile) -> Result<File,DatabaseError> {
@@ -88,28 +95,32 @@ impl ChunkIndex {
         self::chunks::table.load(&*conn).map_err(|e| DatabaseError::from(e))
     }
 
-    pub fn get_full_chunk_path(&self, file_id: i32) -> Result<Vec<String>, DatabaseError> {
+    pub fn get_file_path(&self, file_id: i32) -> Result<PathBuf, DatabaseError> {
         use self::folders::dsl;
         use self::files;
-        let mut path = vec!();
-
         let conn = self.db_pool.get()?;
 
-        let file = files::dsl::files.filter(files::dsl::id.eq(&file_id)).first::<File>(&*conn)?;
-        path.push(file.name.clone());
-        let mut parent_id = file.folder;
+        conn.transaction::<_, DatabaseError, _>(|| {
 
-        loop {
-            let folder = dsl::folders.filter(dsl::id.eq(parent_id)).first::<Folder>(&*conn).expect("Woops");
-            path.push(folder.name.clone());
+            let file = files::dsl::files.filter(files::dsl::id.eq(&file_id)).first::<File>(&*conn)?;
+            let mut parent_id = file.folder;
+            let mut path_vec = vec!(file.name.clone());
+            let mut path = PathBuf::new();
 
-            if let Some(parent) = folder.parent_folder {
-                parent_id = parent;
-            } else {
-                break;
+            loop {
+                let folder = dsl::folders.filter(dsl::id.eq(parent_id)).first::<Folder>(&*conn)?;
+                path_vec.push(folder.name.clone());
+
+                if let Some(parent) = folder.parent_folder {
+                    parent_id = parent;
+                } else {
+                    break;
+                }
             }
-        }
-        path.reverse();
-        Ok(path)
+
+            path_vec.reverse();
+            path_vec.iter().for_each(|e| path.push(e));
+            Ok(path)
+        })
     }
 }

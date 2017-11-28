@@ -1,14 +1,13 @@
 use std::path::PathBuf;
-use std::fs;
 use std::io;
 use std::fs::DirEntry;
 use std::ffi::OsString;
 
 use chrono::prelude::*;
-use sha2::{Sha256,Digest};
 
 use super::{ChunkIndex, DatabaseError};
 use super::{Folder, NewFolder, File, NewFile, NewChunk};
+use super::create_utils;
 
 quick_error! {
     #[derive(Debug)]
@@ -28,29 +27,30 @@ quick_error! {
     }
 }
 
-pub struct ChunkIndexBuilder {
+pub struct CreateChunkIndex {
     chunk_index: ChunkIndex,
     path: PathBuf,
     parent_folder: Option<Folder>,
 }
 
-impl ChunkIndexBuilder {
-    pub fn new(chunk_index: &ChunkIndex, path: &PathBuf) -> Result<Self, BuilderError> {
-        let parentless = Self {
+impl CreateChunkIndex {
+    pub fn new(chunk_index: &ChunkIndex, path: &PathBuf) -> Result<(), BuilderError> {
+        let backup_root = Self {
             chunk_index: chunk_index.clone(),
             path: path.clone(),
             parent_folder: None,
         };
-        let parent_folder = parentless.add_folder(path).map_err(|e| BuilderError::from(e))?;
+        let parent_folder = backup_root.add_folder(path).map_err(|e| BuilderError::from(e))?;
 
-        Ok(Self {
+        let create_chunk_index = Self {
             chunk_index: chunk_index.clone(),
             path: path.clone(),
             parent_folder: Some(parent_folder),
-        })
+        };
+        create_chunk_index.build()
     }
 
-    pub fn build(self) -> Result<(), BuilderError> {
+    fn build(self) -> Result<(), BuilderError> {
         for entry in self.path.read_dir()? {
             let entry = entry?;
             match entry.file_type() {
@@ -87,9 +87,7 @@ impl ChunkIndexBuilder {
             folder: folder_id,
         })?;
 
-        let mut binary_file = fs::File::open(&file_entry.path())?;
-        let hash = Sha256::digest_reader(&mut binary_file)?;
-        let chunk_identifier = hash.iter().map(|e| format!("{:x}", e)).flat_map(|s| s.chars().collect::<Vec<_>>()).collect();
+        let chunk_identifier = create_utils::file_hash(&file_entry.path())?;
 
         self.chunk_index.add_chunk(NewChunk{
             chunk_identifier,
@@ -101,10 +99,9 @@ impl ChunkIndexBuilder {
     }
 
     fn add_folder(&self, folder_path: &PathBuf) -> Result<Folder, BuilderError> {
-        let name = match folder_path.file_name() {
-            Some(name) => OsString::from(name).into_string()?,
-            None => String::new(),
-        };
+        let name = OsString::from(folder_path.file_name()
+           .ok_or(io::Error::new(io::ErrorKind::NotFound ,"No folder in path given"))?).into_string()?;
+
         let parent_folder = match self.parent_folder {
             Some(ref folder) => Some(folder.id),
             None => None,

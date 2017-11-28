@@ -16,12 +16,18 @@ extern crate sha2;
 
 extern crate redbackup_protocol;
 
+#[cfg(test)]
+mod tests;
+
 pub mod config;
-pub mod create;
+pub mod create_backup;
 mod chunk_index;
 
-pub use create::config::{CreateConfig, CreateConfigError};
+pub use create_backup::config::{CreateBackupConfig, CreateBackupConfigError};
 
-pub fn create(config: config::Config, create_config: CreateConfig) -> Result<(), create::CreateError> {
-    create::run(config, create_config)
+pub fn create_backup(config: config::Config, create_backup_config: CreateBackupConfig) -> Result<(), create_backup::CreateError> {
+    create_backup::CreateBackupContext::new(
+        config,
+        create_backup_config,
+    )?.run()
 }

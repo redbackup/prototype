@@ -1,3 +1,7 @@
 target/
 cobertura.xml
 coverage.html
+
+# Ignore editor/IDE files
+*.swp
+.idea
