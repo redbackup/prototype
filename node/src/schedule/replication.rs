@@ -11,7 +11,7 @@ use tokio_service::Service;
 use redbackup_protocol::RedClientProto;
 use redbackup_protocol::message::*;
 use redbackup_storage::Storage;
-use chunk_table::{ChunkTable, DatabaseError};
+use chunk_table::{Chunk, ChunkTable, DatabaseError};
 
 use super::Task;
 use super::super::utils;
@@ -109,13 +109,8 @@ fn replicate(
     for node_addr in known_nodes {
         debug!("Replicating selected chunks to node {}", node_addr);
 
-        // TODO: Extract into: get_available_chunks_from_node
-        let req = GetChunkStates::new(chunk_elements.clone());
         let node_chunks =
-            message_node_sync(req, &node_addr, &mut event_loop).map(|res| match res.body {
-                MessageKind::ReturnChunkStates(body) => Ok(body.chunks),
-                _ => Err(ReplicationError::NodeCommunicationError),
-            })??;
+            get_available_chunks_from_node(chunk_elements.clone(), &node_addr, &mut event_loop)?;
         let mut missing_chunks = chunks.clone();
         info!(
             "{} of total {} chunks are already present on node {}",
@@ -128,38 +123,58 @@ fn replicate(
         debug!("missing_chunks: {:?}", missing_chunks);
 
         for chunk in missing_chunks {
-            // TODO: Extract into: send_chunk_to_node
-
-            let chunk_identifier = chunk.chunk_identifier.clone();
-            debug!("Sending missing chunk {} to node {}", node_addr, node_addr);
-            let chunk = utils::chunk_to_chunk_contents_element(chunk, &storage).unwrap();
-            let req = PostChunks::new(vec![chunk]);
-            let acknowledged_chunks =
-                message_node_sync(req, &node_addr, &mut event_loop).map(|res| match res.body {
-                    MessageKind::AcknowledgeChunks(body) => Ok(body.chunks),
-                    _ => Err(ReplicationError::NodeCommunicationError),
-                })??;
-
-            let acknowledged_chunk: &ChunkElement = acknowledged_chunks.get(0).ok_or(
-                ReplicationError::ChunkNotAcknowledged(chunk_identifier.clone()),
-            )?;
-
-            if acknowledged_chunk.chunk_identifier != chunk_identifier {
-                return Err(ReplicationError::WrongChunkAcknowledged(
-                    chunk_identifier.clone(),
-                    acknowledged_chunk.chunk_identifier.clone(),
-                ));
-            }
-            debug!(
-                "Acknowledged chunk: {}",
-                acknowledged_chunk.chunk_identifier
-            );
+            send_chunk_to_node(chunk, &storage, &node_addr, &mut event_loop)?;
         }
     }
     info!("Replication completed successfully");
     Ok(())
 }
-use chunk_table::Chunk;
+
+fn get_available_chunks_from_node(
+    chunk_elements: Vec<ChunkElement>,
+    node_addr: &SocketAddr,
+    event_loop: &mut Core,
+) -> Result<Vec<ChunkElement>, ReplicationError> {
+    let req = GetChunkStates::new(chunk_elements);
+    message_node_sync(req, node_addr, event_loop).map(|res| match res.body {
+        MessageKind::ReturnChunkStates(body) => Ok(body.chunks),
+        _ => Err(ReplicationError::NodeCommunicationError),
+    })?
+}
+
+fn send_chunk_to_node(
+    chunk: Chunk,
+    storage: &Storage,
+    node_addr: &SocketAddr,
+    event_loop: &mut Core,
+) -> Result<(), ReplicationError> {
+    let chunk_identifier = chunk.chunk_identifier.clone();
+    debug!("Sending missing chunk {} to node {}", node_addr, node_addr);
+    let chunk = utils::chunk_to_chunk_contents_element(chunk, storage).unwrap();
+    let req = PostChunks::new(vec![chunk]);
+    let acknowledged_chunks =
+        message_node_sync(req, node_addr, event_loop).map(|res| match res.body {
+            MessageKind::AcknowledgeChunks(body) => Ok(body.chunks),
+            _ => Err(ReplicationError::NodeCommunicationError),
+        })??;
+
+    let acknowledged_chunk: &ChunkElement = acknowledged_chunks.get(0).ok_or(
+        ReplicationError::ChunkNotAcknowledged(chunk_identifier.clone()),
+    )?;
+
+    if acknowledged_chunk.chunk_identifier != chunk_identifier {
+        return Err(ReplicationError::WrongChunkAcknowledged(
+            chunk_identifier.clone(),
+            acknowledged_chunk.chunk_identifier.clone(),
+        ));
+    }
+    debug!(
+        "Chunk {} is now replicated",
+        acknowledged_chunk.chunk_identifier
+    );
+    Ok(())
+}
+
 fn reduce_by_remaining_chunks(elements: &mut Vec<Chunk>, reduction: &Vec<ChunkElement>) {
     elements.retain(|e| {
         reduction
@@ -168,7 +183,6 @@ fn reduce_by_remaining_chunks(elements: &mut Vec<Chunk>, reduction: &Vec<ChunkEl
             .count() == 0
     });
 }
-
 
 fn message_node_sync(
     message: Message,
