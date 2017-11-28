@@ -3,10 +3,13 @@ extern crate clap;
 extern crate env_logger;
 extern crate redbackup_client;
 
+use std::thread;
 use std::process;
+use std::sync::mpsc;
+use std::sync::mpsc::{Sender, Receiver};
 
 use redbackup_client::config::{Config, ParseError};
-use redbackup_client::{CreateBackupConfig, CreateBackupConfigError, RestoreBackupConfig, RestoreBackupConfigError};
+use redbackup_client::{CreateBackupConfig, CreateBackupConfigError, RestoreBackupConfig, RestoreBackupConfigError, Progress};
 
 use clap::{App, Arg, SubCommand};
 
@@ -112,7 +115,18 @@ fn main() {
                 };
                 process::exit(1);
             });
-            redbackup_client::create_backup(config, backup_cfg).unwrap_or_else(|err| handle_error(err));
+            
+            let (tx, rx): (Sender<Progress>, Receiver<_>) = mpsc::channel();
+            thread::spawn(move || {
+                loop {
+                    match rx.recv() {
+                        Ok(msg) => println!("{}", msg.status_msg()),
+                        Err(_) => break
+                    }
+                }
+            });
+
+            redbackup_client::create_backup(config, backup_cfg, tx).unwrap_or_else(|err| handle_error(err));
         },
 
         ("list", _) => match redbackup_client::list_backups(config) {

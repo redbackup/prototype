@@ -20,19 +20,24 @@ extern crate redbackup_protocol;
 #[cfg(test)]
 mod tests;
 pub mod config;
+pub mod progress;
 pub mod create_backup;
 pub mod list_backups;
 pub mod restore_backup;
 mod chunk_index;
 
+use std::sync::mpsc::Sender;
+
 pub use create_backup::config::{CreateBackupConfig, CreateBackupConfigError};
 pub use restore_backup::config::{RestoreBackupConfig, RestoreBackupConfigError};
+pub use progress::Progress;
 use chrono::prelude::*;
 
-pub fn create_backup(config: config::Config, create_backup_config: CreateBackupConfig) -> Result<(), create_backup::CreateError> {
+pub fn create_backup(config: config::Config, create_backup_config: CreateBackupConfig, progress : Sender<Progress>) -> Result<(), create_backup::CreateError> {
     create_backup::CreateBackupContext::new(
         config,
         create_backup_config,
+        progress,
     )?.run()
 }
 
