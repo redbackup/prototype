@@ -47,18 +47,19 @@ impl Clone for Storage {
 impl Storage {
     pub fn new(location: PathBuf) -> Result<Storage, StorageError> {
         if !location.exists() {
-            info!("Creating nonexisting location {:?}", location);
+            debug!("Create nonexisting location {:?}", location);
             fs::create_dir_all(&*location)?;
-            info!("Using newly created location {:?} for storage", location);
+            debug!("Use newly created location {:?} for storage", location);
         } else {
-            info!("Using existing location {:?} for storage", location);
+            debug!("Use existing location {:?} for storage", location);
         }
+        info!("Initialised storage at {:?}", location);
         Ok(Storage { location: location })
     }
 
     pub fn persist(&self, identifier: &str, data: &Vec<u8>) -> Result<(), StorageError> {
         let path = self.filename_for_identifier(identifier);
-        info!("Persisting chunk with identifer {} at {:?}", identifier, path);
+        debug!("Persist chunk with identifer {} at {:?}", identifier, path);
         if path.exists() {
             return Err(StorageError::PersistExistingChunk(identifier.into()));
         }
@@ -70,7 +71,7 @@ impl Storage {
 
     pub fn get(&self, identifier: &str) -> Result<Vec<u8>, StorageError> {
         let path = self.filename_for_identifier(identifier);
-        info!("Loading contents for chunk with identifer {} at {:?}", identifier, path);
+        debug!("Load contents for chunk with identifer {} at {:?}", identifier, path);
         if !path.exists() {
             return Err(StorageError::GetNonExistingChunk(identifier.into()));
         }
@@ -82,7 +83,7 @@ impl Storage {
 
     pub fn delete(&self, identifier: &str) -> Result<(), StorageError> {
         let path = self.filename_for_identifier(identifier);
-        info!("Deleting contents for chunk with identifer {} at {:?}", identifier, path);
+        debug!("Delete contents for chunk with identifer {} at {:?}", identifier, path);
         if !path.exists() {
             return Err(StorageError::DeleteNonExistingChunk(identifier.into()));
         }

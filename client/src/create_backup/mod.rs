@@ -37,11 +37,11 @@ impl CreateBackupContext {
         let chunk_index_file = PathBuf::from(format!("{}/chunk_index-{}.db",
             config.chunk_index_storage.to_str().unwrap(),
             now.to_rfc3339()));
-        info!("Creating chunk index {}", chunk_index_file.to_string_lossy());
 
         let event_loop = tokio_core::reactor::Core::new()?;
         let handle = event_loop.handle();
 
+        debug!("Create chunk index {}", chunk_index_file.to_string_lossy());
         Ok(Self {
             config,
             create_backup_config,
@@ -53,16 +53,19 @@ impl CreateBackupContext {
 
     /// The backup process
     pub fn run(&mut self) -> Result<(), CreateError> {
+        info!("Create chunk index from {:?}", self.create_backup_config.backup_dir);
         CreateChunkIndex::new(&self.chunk_index, &self.create_backup_config.backup_dir)?;
-        info!("The chunk index was built successfully");
 
+        info!("Request designation from node");
         self.request_designation()?;
         info!("Designation was granted by the node");
 
+        info!("Check which chunks are already on the node");
+        debug!("Collecting chunks from database");
         let mut chunks = self.chunk_index.get_all_chunks()?;
         let chunk_elements = chunks.iter().map(|e| self.chunk_to_chunk_element(e)).collect();
 
-
+        debug!("Get available chunks from node");
         let node_chunks = self.get_available_chunks_from_node(chunk_elements)?;
         info!(
             "{} of total {} chunks are not yet stored on the node",
@@ -71,16 +74,19 @@ impl CreateBackupContext {
         );
         Self::reduce_by_remaining_chunks(&mut chunks, &node_chunks);
 
-        // Send chunks one by one.
+        info!("Send chunks to node");
         for chunk in chunks {
+            debug!("Collect chunk {} content", chunk.chunk_identifier);
             let chunk_ce = self.chunk_to_chunk_content_element(&chunk)?;
+            debug!("Send chunk {} to node", chunk_ce.chunk_identifier);
             self.send_chunk(chunk_ce)?;
             debug!("Successfully sent chunk {} to node", chunk.chunk_identifier);
         }
         info!("Successfully sent all data chunks.");
 
+        info!("Send chunk index to node as root handle");
         self.send_chunk_index()?;
-        info!("Successfully sent chunk index as root handle.");
+        info!("Successfully sent chunk index");
 
         Ok(())
     }
@@ -127,7 +133,6 @@ impl CreateBackupContext {
     fn send_chunk(&mut self, chunk: ChunkContentElement) -> Result<(), CreateError> {
         let chunk_identifier = chunk.chunk_identifier.clone();
 
-        info!("Sending PostChunks message for {}", chunk.chunk_identifier);
         let req = PostChunks::new(vec!(chunk));
         let acknowledged_chunks: Vec<ChunkElement> = self.message_node_sync(req)
             .map(|res| match res.body {
@@ -144,19 +149,22 @@ impl CreateBackupContext {
             Ok(())
         } else {
             error!(
-                "Expected chunk {} acknowledgement, got {}",
+                "Expected chunk {} acknowledgement from node, got {}",
                 chunk_identifier,
                 acknowledged_chunk.chunk_identifier
             );
             Err(CreateError::ChunkNotAcknowledged(chunk_identifier))
         }
     }
+
     /// Send the chunk index as root_handle to the node.
     fn send_chunk_index(&mut self) -> Result<(), CreateError> {
+        debug!("Collect metadata and file content of chunk index");
         let file_name = self.chunk_index.get_file_name();
         let chunk_identifier = create_utils::file_hash(&file_name)?;
         let chunk_content = create_utils::read_file_content(&file_name)?;
         let expiration_date = self.create_backup_config.expiration_date.clone();
+        debug!("Send chunk index {} to node", chunk_identifier);
         self.send_chunk(ChunkContentElement{
             chunk_identifier,
             chunk_content,
