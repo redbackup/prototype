@@ -109,10 +109,10 @@ impl RestoreBackupContext {
             let chunk_content = self.request_chunk(chunk.chunk_identifier.clone())?;
 
             let mut path = self.restore_config.restore_dir.clone();
-            path.pop(); // The last folder here is the same as the root folder of the file
             path.push(chunk_index.get_file_path(chunk.file)?);
 
             utils::restore_file_content(&chunk_content.chunk_content.as_slice(), &path)?;
+            debug!("Restored chunk {} to {:?}",chunk.chunk_identifier, path);
         }
         Ok(())
     }
