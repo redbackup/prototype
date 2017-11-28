@@ -6,7 +6,7 @@ extern crate redbackup_client;
 use std::process;
 
 use redbackup_client::config::{Config, ParseError};
-use redbackup_client::{CreateBackupConfig, CreateBackupConfigError};
+use redbackup_client::{CreateBackupConfig, CreateBackupConfigError, RestoreBackupConfig, RestoreBackupConfigError};
 
 use clap::{App, Arg, SubCommand};
 
@@ -41,6 +41,7 @@ fn main() {
         )
         .subcommand(
             SubCommand::with_name("create")
+                .help("Create a new backup")
                 .arg(
                     Arg::with_name("expiration-date")
                         .help("the expiration date of this snapshot (format: %Y-%m-%dT%H:%M)")
@@ -49,6 +50,24 @@ fn main() {
                 .arg(
                     Arg::with_name("local-backup-dir")
                         .help("Directories, that should be backuped")
+                        .required(true),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("list")
+                .help("List available backups on the node."),
+        )
+        .subcommand(
+            SubCommand::with_name("restore")
+                .help("List available backups on the node.")
+                .arg(
+                    Arg::with_name("backup-id")
+                        .help("ID of the backup that should be restored")
+                        .required(true),
+                )
+                .arg(
+                    Arg::with_name("local-restore-dir")
+                        .help("Destionation, where the files should be restored to.")
                         .required(true),
                 ),
         )
@@ -77,7 +96,6 @@ fn main() {
 
     match matches.subcommand() {
         ("create", Some(matches_create)) => {
-
             let local_backup_dir = matches_create.value_of("local-backup-dir").unwrap();
             let expiration_date = matches_create.value_of("expiration-date").unwrap();
             let backup_cfg = CreateBackupConfig::new(local_backup_dir, expiration_date).unwrap_or_else(|err| {
@@ -96,7 +114,36 @@ fn main() {
             });
             redbackup_client::create_backup(config, backup_cfg)
                 .unwrap_or_else(|err| eprintln!("Huston, we have a problem! ({})", err));
-        }
+        },
+
+        ("list", _) => match redbackup_client::list_backups(config) {
+            Err(err)              => eprintln!("Huston, we have a problem! ({})", err),
+            Ok(available_backups) => {
+                println!("{:64} Expiration Date", "Backup ID"); // Backup ID length is hash dependent.
+                for backup in available_backups {
+                    println!("{} {}", backup.0, backup.1);
+                }
+            },
+        },
+
+        ("restore", Some(matches_restore)) => {
+            let local_restore_dir = matches_restore.value_of("local-restore-dir").unwrap();
+            let backup_id = matches_restore.value_of("backup-id").unwrap();
+            let restore_cfg = RestoreBackupConfig::new(backup_id, local_restore_dir).unwrap_or_else(|err| {
+                match err {
+                    RestoreBackupConfigError::NonExistingDirectory(err) => {
+                        eprintln!("The given directory '{}' does not exist", err)
+                    }
+                    RestoreBackupConfigError::InvalidBackupId(err) => {
+                        eprintln!("The given backup ID '{}' is invalid", err)
+                    },
+                };
+                process::exit(1);
+            });
+            redbackup_client::restore_backup(config, restore_cfg)
+                .unwrap_or_else(|err| eprintln!("Huston, we have a problem! ({})", err));
+        },
+
         (&_, _) => eprintln!("No command was used!"),
     }
 }
