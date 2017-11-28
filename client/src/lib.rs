@@ -18,6 +18,7 @@ extern crate tokio_core;
 extern crate tokio_proto;
 extern crate tokio_service;
 extern crate uuid;
+extern crate glob;
 
 extern crate redbackup_protocol;
 

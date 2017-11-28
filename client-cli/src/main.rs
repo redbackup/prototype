@@ -7,6 +7,7 @@ use std::thread;
 use std::process;
 use std::sync::mpsc;
 use std::sync::mpsc::{Sender, Receiver};
+use std::error::Error;
 
 use redbackup_client::config::{Config, ParseError};
 use redbackup_client::{CreateBackupConfig, CreateBackupConfigError, RestoreBackupConfig, RestoreBackupConfigError, Progress};
@@ -15,7 +16,7 @@ use clap::{App, Arg, SubCommand};
 
 
 fn main() {
-    let matches = App::new("redbackup client-cli")
+    let mut app = App::new("redbackup client-cli")
         .about("redbackup client")
         .version(crate_version!())
         .author(crate_authors!())
@@ -54,7 +55,14 @@ fn main() {
                     Arg::with_name("local-backup-dir")
                         .help("Directories, that should be backuped")
                         .required(true),
-                ),
+                )
+                .arg(
+                    Arg::with_name("exclude-from")
+                        .help("Exclude glob patterns from FILE")
+                        .long("exclude-from")
+                        .takes_value(true)
+                        .value_name("FILE")
+                    ),
         )
         .subcommand(
             SubCommand::with_name("list")
@@ -73,8 +81,8 @@ fn main() {
                         .help("Destionation, where the files should be restored to.")
                         .required(true),
                 ),
-        )
-        .get_matches();
+        );
+    let matches = app.clone().get_matches();
 
     let node_host = matches.value_of("node-hostname").unwrap();
     let node_port = matches.value_of("node-port").unwrap();
@@ -101,7 +109,9 @@ fn main() {
         ("create", Some(matches_create)) => {
             let local_backup_dir = matches_create.value_of("local-backup-dir").unwrap();
             let expiration_date = matches_create.value_of("expiration-date").unwrap();
-            let backup_cfg = CreateBackupConfig::new(local_backup_dir, expiration_date).unwrap_or_else(|err| {
+            let exclude_from = matches_create.value_of("exclude-from");
+
+            let backup_cfg = CreateBackupConfig::new(local_backup_dir, expiration_date, exclude_from).unwrap_or_else(|err| {
                 match err {
                     CreateBackupConfigError::NonExistingDirectory(err) => {
                         eprintln!("The given directory '{}' does not exist", err)
@@ -111,6 +121,12 @@ fn main() {
                     },
                     CreateBackupConfigError::DateNotFarEnoughInTheFuture(err) => {
                         eprintln!("The given date '{}' is not far enough in the future", err)
+                    },
+                    CreateBackupConfigError::ExcludeFromFileReadError(err) => {
+                        eprintln!("The given exclude-from file {} does not exist ({:?})", err.description(), err.cause());
+                    },
+                    CreateBackupConfigError::ExcludePatternError(err) => {
+                        eprintln!("Invalid exclude glob specified ({}, {:?})", err.description(), err.cause());
                     },
                 };
                 process::exit(1);
@@ -148,7 +164,7 @@ fn main() {
             redbackup_client::restore_backup(config, restore_cfg, progress_sender).unwrap_or_else(|err| handle_error(err));
         },
 
-        (&_, _) => eprintln!("No command was used!"),
+        (&_, _) => app.print_help().expect("Could not get help options"),
     }
 }
 

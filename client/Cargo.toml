@@ -23,6 +23,7 @@ dns-lookup = "0.8.1"
 sha2 = "0.7.0"
 digest = { version = "0.7.2", features = ["std"]}
 log = "0.3.8"
+glob = "0.2.11"
 
 [dependencies.redbackup-protocol]
 path = "../protocol"
