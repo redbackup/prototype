@@ -7,10 +7,12 @@ quick_error!{
     pub enum RestoreBackupError {
         DatabaseError(err: DatabaseError) {
             from()
+            display("Database Error occured during restore: {} ", err)
             cause(err)
         }
         IoError(err: io::Error) {
             from()
+            display("I/O Error occured during restore: {} ", err)
             cause(err)
         }
         NodeCommunicationError {
