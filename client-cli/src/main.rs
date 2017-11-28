@@ -45,7 +45,7 @@ fn main() {
         )
         .subcommand(
             SubCommand::with_name("create")
-                .help("Create a new backup")
+                .about("Create a new backup")
                 .arg(
                     Arg::with_name("expiration-date")
                         .help("the expiration date of this snapshot (format: %Y-%m-%dT%H:%M)")
@@ -59,6 +59,7 @@ fn main() {
                 .arg(
                     Arg::with_name("exclude-from")
                         .help("Exclude glob patterns from FILE")
+                        .long_help("Exclude multiple glob patterns from FILE. Define one pattern per line. For allowed glob syntax, see https://docs.rs/glob/0/glob/struct.Pattern.html#main")
                         .long("exclude-from")
                         .takes_value(true)
                         .value_name("FILE")
@@ -66,11 +67,11 @@ fn main() {
         )
         .subcommand(
             SubCommand::with_name("list")
-                .help("List available backups on the node."),
+                .about("List available backups on the node."),
         )
         .subcommand(
             SubCommand::with_name("restore")
-                .help("List available backups on the node.")
+                .about("List available backups on the node.")
                 .arg(
                     Arg::with_name("backup-id")
                         .help("ID of the backup that should be restored")
@@ -111,23 +112,38 @@ fn main() {
             let expiration_date = matches_create.value_of("expiration-date").unwrap();
             let exclude_from = matches_create.value_of("exclude-from");
 
-            let backup_cfg = CreateBackupConfig::new(local_backup_dir, expiration_date, exclude_from).unwrap_or_else(|err| {
+            let backup_cfg = CreateBackupConfig::new(
+                local_backup_dir,
+                expiration_date,
+                exclude_from,
+            ).unwrap_or_else(|err| {
                 match err {
                     CreateBackupConfigError::NonExistingDirectory(err) => {
                         eprintln!("The given directory '{}' does not exist", err)
                     }
                     CreateBackupConfigError::InvalidDateFormat(err) => {
-                        eprintln!("The given date '{}' can not be parsed (format: %Y-%m-%dT%H:%M)", err)
-                    },
+                        eprintln!(
+                            "The given date '{}' can not be parsed (format: %Y-%m-%dT%H:%M)",
+                            err
+                        )
+                    }
                     CreateBackupConfigError::DateNotFarEnoughInTheFuture(err) => {
                         eprintln!("The given date '{}' is not far enough in the future", err)
-                    },
+                    }
                     CreateBackupConfigError::ExcludeFromFileReadError(err) => {
-                        eprintln!("The given exclude-from file {} does not exist ({:?})", err.description(), err.cause());
-                    },
+                        eprintln!(
+                            "The given exclude-from file {} does not exist ({:?})",
+                            err.description(),
+                            err.cause()
+                        );
+                    }
                     CreateBackupConfigError::ExcludePatternError(err) => {
-                        eprintln!("Invalid exclude glob specified ({}, {:?})", err.description(), err.cause());
-                    },
+                        eprintln!(
+                            "Invalid exclude glob specified ({}, {:?})",
+                            err.description(),
+                            err.cause()
+                        );
+                    }
                 };
                 process::exit(1);
             });
@@ -143,8 +159,8 @@ fn main() {
                 for backup in available_backups {
                     println!("{} {}", backup.0, backup.1);
                 }
-            },
-        },
+            }
+        }
 
         ("restore", Some(matches_restore)) => {
             let local_restore_dir = matches_restore.value_of("local-restore-dir").unwrap();
