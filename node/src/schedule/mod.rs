@@ -26,12 +26,12 @@ pub fn setup(
     known_nodes: Vec<SocketAddr>,
 ) {
     info!("Setting up replication schedule..");
-    let timeout = Duration::from_millis(5000);
+    let timeout = Duration::from_secs(30);
     let replication_task = ReplicateTask::new(storage.clone(), chunk_table.clone(), known_nodes);
     Schedule::new(handle.clone(), Arc::new(replication_task), timeout).schedule();
 
     info!("Setting up integrity check schedule..");
-    let timeout = time::Duration::from_millis(20000);
+    let timeout = time::Duration::from_secs(60);
     let integrity_check_task = IntegrityCheckTask::new(storage, chunk_table);
     Schedule::new(handle.clone(), Arc::new(integrity_check_task), timeout).schedule();
 }

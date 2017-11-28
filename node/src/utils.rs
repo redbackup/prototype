@@ -1,7 +1,11 @@
+use std::error::Error;
+
 use chrono::{DateTime, Utc};
 
-use chunk_table::Chunk; //, ChunkTable};
+use redbackup_storage::Storage;
 use redbackup_protocol::message::*;
+
+use chunk_table::Chunk;
 
 impl From<ChunkElement> for Chunk {
     fn from(other: ChunkElement) -> Self {
@@ -30,5 +34,20 @@ impl Into<ChunkElement> for Chunk {
             expiration_date: DateTime::from_utc(self.expiration_date, Utc),
             root_handle: self.root_handle,
         }
+    }
+}
+
+pub fn chunk_to_chunk_contents_element(chunk: Chunk, storage: &Storage) -> Option<ChunkContentElement> {
+    match storage.get(&chunk.chunk_identifier) {
+        Err(err) => {
+            warn!("Failed to load chunk: {:?}", err.description());
+            None
+        }
+        Ok(content) => Some(ChunkContentElement {
+            chunk_identifier: chunk.chunk_identifier,
+            expiration_date: DateTime::from_utc(chunk.expiration_date, Utc),
+            root_handle: chunk.root_handle,
+            chunk_content: content,
+        }),
     }
 }

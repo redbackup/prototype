@@ -4,13 +4,14 @@ use futures::future;
 use futures::Future;
 use futures_cpupool::CpuPool;
 use tokio_service::Service;
-use chrono::{DateTime, Utc};
 use std::error::Error;
 
 use redbackup_protocol::{Message, MessageKind};
 use redbackup_storage::Storage;
 use chunk_table::{Chunk, ChunkTable};
 use redbackup_protocol::message::*;
+
+use utils;
 
 pub struct NodeService {
     pub cpu_pool: CpuPool,
@@ -128,7 +129,7 @@ impl NodeService {
                 Ok(chunks) => {
                     let chunks = chunks
                         .into_iter()
-                        .map(|chunk| chunk_to_chunk_contents_element(chunk, &storage))
+                        .map(|chunk| utils::chunk_to_chunk_contents_element(chunk, &storage))
                         .filter(|result| result.is_some())
                         .map(|r| r.unwrap())
                         .collect();
@@ -152,7 +153,7 @@ impl NodeService {
                 debug!("Get chunk {} from chunk table", chunk_identifier);
                 if let Ok(chunk) = chunk_table.get_chunk(&chunk_identifier) {
                     if let Some(chunk_content_element) =
-                        chunk_to_chunk_contents_element(chunk, &storage)
+                        utils::chunk_to_chunk_contents_element(chunk, &storage)
                     {
                         debug!("Successfully received chunk {} from storage", chunk_content_element.chunk_identifier);
                         results.push(chunk_content_element);
@@ -163,20 +164,5 @@ impl NodeService {
             }
             Ok(ReturnChunks::new(results))
         }))
-    }
-}
-
-fn chunk_to_chunk_contents_element(chunk: Chunk, storage: &Storage) -> Option<ChunkContentElement> {
-    match storage.get(&chunk.chunk_identifier) {
-        Err(err) => {
-            warn!("Failed to load chunk: {:?}", err.description());
-            None
-        }
-        Ok(content) => Some(ChunkContentElement {
-            chunk_identifier: chunk.chunk_identifier,
-            expiration_date: DateTime::from_utc(chunk.expiration_date, Utc),
-            root_handle: chunk.root_handle,
-            chunk_content: content,
-        }),
     }
 }
