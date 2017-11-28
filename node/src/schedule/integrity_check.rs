@@ -2,7 +2,7 @@ use futures_cpupool::CpuPool;
 use futures_cpupool::CpuFuture;
 
 use redbackup_storage::Storage;
-use chunk_table::ChunkTable;
+use chunk_table::{ChunkTable, DatabaseError};
 
 use super::Task;
 
@@ -26,31 +26,44 @@ impl Task for IntegrityCheckTask {
         let chunk_table = self.chunk_table.clone();
         let storage = self.storage.clone();
         self.pool.spawn_fn(move || {
-            let db_res = chunk_table.load_random_chunks(5);
-            if !db_res.is_err() {
-                for chunk in db_res.unwrap() {
-                    let vres = storage.verify(&chunk.chunk_identifier);
-                    if vres.is_err() {
-                        error!("Corruption detected: {}", vres.unwrap_err())
-                    } else {
-                        debug!(
-                            "Integrity check for chunk {} successful",
-                            chunk.chunk_identifier
-                        );
-                    }
-                }
-            } else {
-                error!(
-                    "Failed to load sample from db for integrity check: {}",
-                    db_res.unwrap_err()
-                );
-            }
-            let res: Result<(), ()> = Ok(());
-            res
+            info!("begin with integrity check");
+            check_integrity(chunk_table, storage).map_err(|e| {
+                error!("integrity check has failed with a problem: {}", e);
+                ()
+            })
         })
     }
 
     fn name(&self) -> &'static str {
         "integrity check"
     }
+}
+
+quick_error!{
+    #[derive(Debug)]
+    pub enum IntegrityCheckError {
+        DatabaseError(err: DatabaseError) {
+            from()
+            display("DatabaseError: {}", err)
+            cause(err)
+        }
+
+    }
+}
+
+
+fn check_integrity(chunk_table: ChunkTable, storage: Storage) -> Result<(), IntegrityCheckError> {
+    let chunks = chunk_table.load_random_chunks(5)?;
+    for chunk in chunks {
+        let res = storage.verify(&chunk.chunk_identifier);
+        if res.is_err() {
+            error!("Corruption detected: {}", res.unwrap_err())
+        } else {
+            debug!(
+                "Integrity check for chunk {} successful",
+                chunk.chunk_identifier
+            );
+        }
+    }
+   Ok(())
 }
