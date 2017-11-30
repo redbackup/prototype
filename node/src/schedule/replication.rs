@@ -91,6 +91,8 @@ fn replicate(
     known_nodes: Vec<SocketAddr>,
 ) -> Result<(), ReplicationError> {
     info!("Loading chunks to replicate...");
+    // As for the prototype, the number of chunks to replicate at the same time is a magic number that is chosen arbitrary.
+    // In the future, this number should depend on the number of chunks on the node and other heuristics.
     let chunks = chunk_table.load_random_chunks(5)?;
     debug!("Loading chunks: {:?}", chunks);
 

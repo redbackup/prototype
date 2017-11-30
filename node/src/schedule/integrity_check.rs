@@ -1,7 +1,7 @@
 use futures_cpupool::CpuPool;
 use futures_cpupool::CpuFuture;
 
-use redbackup_storage::Storage;
+use redbackup_storage::{Storage, StorageError};
 use chunk_table::{ChunkTable, DatabaseError};
 
 use super::Task;
@@ -28,8 +28,7 @@ impl Task for IntegrityCheckTask {
         self.pool.spawn_fn(move || {
             info!("begin with integrity check");
             check_integrity(chunk_table, storage).map_err(|e| {
-                error!("integrity check has failed with a problem: {}", e);
-                ()
+                panic!("integrity check has failed with a problem: {}", e);
             })
         })
     }
@@ -47,23 +46,23 @@ quick_error!{
             display("DatabaseError: {}", err)
             cause(err)
         }
+        StorageCorruption(err: StorageError) {
+            from()
+            display("Corruption detected: {}", err)
+            cause(err)
+        }
 
     }
 }
 
 
 fn check_integrity(chunk_table: ChunkTable, storage: Storage) -> Result<(), IntegrityCheckError> {
+    // As for the prototype, the number of chunks to check at the same time is a magic number that is chosen arbitrary.
+    // In the future, this number should depend on the number of chunks on the node and other heuristics.
     let chunks = chunk_table.load_random_chunks(5)?;
     for chunk in chunks {
-        let res = storage.verify(&chunk.chunk_identifier);
-        if res.is_err() {
-            error!("Corruption detected: {}", res.unwrap_err())
-        } else {
-            debug!(
-                "Integrity check for chunk {} successful",
-                chunk.chunk_identifier
-            );
-        }
+        storage.verify(&chunk.chunk_identifier)?;
+        debug!("Integrity check for chunk {} successful", chunk.chunk_identifier);
     }
-   Ok(())
+    Ok(())
 }

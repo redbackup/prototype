@@ -25,6 +25,8 @@ pub fn setup(
     storage: Storage,
     known_nodes: Vec<SocketAddr>,
 ) {
+    // As for the prototype, the duration between checks is a magic number that is chosen arbitrary.
+    // In the future, this number should depend on the number of chunks on the node and other heuristics.
     info!("Setting up replication schedule..");
     let timeout = Duration::from_secs(30);
     let replication_task = ReplicateTask::new(storage.clone(), chunk_table.clone(), known_nodes);
