@@ -27,9 +27,11 @@ impl Task for IntegrityCheckTask {
         let storage = self.storage.clone();
         self.pool.spawn_fn(move || {
             info!("begin with integrity check");
-            check_integrity(chunk_table, storage).map_err(|e| {
+            let result = check_integrity(chunk_table, storage).map_err(|e| {
                 panic!("integrity check has failed with a problem: {}", e);
-            })
+            });
+            info!("successfully finished integrity check");
+            result
         })
     }
 
