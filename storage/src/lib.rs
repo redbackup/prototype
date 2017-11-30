@@ -111,8 +111,6 @@ impl Storage {
 
 
         if actual_identifier != identifier {
-            println!("{}", actual_identifier);
-            println!("{}", identifier);
             return Err(StorageError::CorruptedChunk(identifier.into(), actual_identifier));
         }
         Ok(())
