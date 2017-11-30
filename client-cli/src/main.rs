@@ -59,7 +59,7 @@ fn main() {
                 .arg(
                     Arg::with_name("exclude-from")
                         .help("Exclude glob patterns from FILE")
-                        .long_help("Exclude multiple glob patterns from FILE. Define one pattern per line. For allowed glob syntax, see https://docs.rs/glob/0/glob/struct.Pattern.html#main")
+                        .long_help("Exclude multiple glob patterns from FILE. Define one pattern per line. Patterns are relative to the backup root, e.g. 'pictures/**/*.jpg'. For allowed glob syntax, see https://docs.rs/glob/0/glob/struct.Pattern.html#main")
                         .long("exclude-from")
                         .takes_value(true)
                         .value_name("FILE")
