@@ -21,9 +21,13 @@ quick_error! {
         DateNotFarEnoughInTheFuture(date: DateTime<Utc>) {}
         ExcludeFromFileReadError(err: io::Error) {
             from()
+            display("ExcludeFromFileReadError: {}", err)
+            cause(err)
         }
         ExcludePatternError(err: PatternError) {
             from()
+            display("ExcludePatternError: {}", err)
+            cause(err)
         }
     }
 }

@@ -132,16 +132,14 @@ fn main() {
                     }
                     CreateBackupConfigError::ExcludeFromFileReadError(err) => {
                         eprintln!(
-                            "The given exclude-from file {} does not exist ({:?})",
-                            err.description(),
-                            err.cause()
+                            "The given exclude-from file does not exist or can not be read (Details: {:?})",
+                            err
                         );
                     }
                     CreateBackupConfigError::ExcludePatternError(err) => {
                         eprintln!(
-                            "Invalid exclude glob specified ({}, {:?})",
-                            err.description(),
-                            err.cause()
+                            "Invalid exclude glob specified ({:?})",
+                            err
                         );
                     }
                 };
