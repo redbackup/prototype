@@ -98,7 +98,7 @@ impl Storage {
 
     pub fn verify(&self, identifier: &str) -> Result<(), StorageError> {
         let path = self.filename_for_identifier(identifier);
-        info!("Loading contents for chunk with identifer {} at {:?}", identifier, path);
+        debug!("Loading contents for chunk with identifer {} at {:?}", identifier, path);
         if !path.exists() {
             return Err(StorageError::GetNonExistingChunk(identifier.into()));
         }
