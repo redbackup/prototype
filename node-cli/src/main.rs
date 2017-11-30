@@ -20,7 +20,7 @@ fn main() {
                 .number_of_values(1)
                 .takes_value(true)
                 .help(
-                    "ip address and port (<ip-address> <port>) of other known nodes in the network",
+                    "ip address and port (<ip-address>:<port>) of other known nodes in the network",
                 ),
         )
         .arg(
