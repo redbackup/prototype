@@ -59,6 +59,10 @@ pub fn prepare_fs_structure(test_name: &str) -> PathBuf {
 
     let mut root = PathBuf::from(env!("OUT_DIR"));
     root.push(test_name);
+    if root.exists(){
+        println!("Removing existing test directory {:?}", root);
+        fs::remove_dir_all(&root).unwrap();
+    }
     builder.create(&root).expect("Could not create testroot");
 
     let mut documents = root.clone();
