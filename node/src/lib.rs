@@ -9,6 +9,7 @@ extern crate log;
 extern crate quick_error;
 
 extern crate chrono;
+extern crate dns_lookup;
 extern crate futures;
 extern crate futures_cpupool;
 extern crate r2d2;

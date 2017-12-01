@@ -101,6 +101,12 @@ impl NodeService {
                     error!("Failed to persist new chunk: {:?}", err.description());
                     continue;
                 }
+                if let Err(err) = storage.verify(
+                    &chunk_content.chunk_identifier
+                ) {
+                    error!("Failed to verify the new chunk: {:?}. Will delete it", err.description());
+                    storage.delete(&chunk_content.chunk_identifier).unwrap();
+                }
 
                 let chunk = Chunk::from(chunk_content);
                 let result = chunk_table.add_chunk(&chunk);

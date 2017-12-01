@@ -1,10 +1,11 @@
+use std::error::Error;
 use std::net::SocketAddr;
+use std::net::IpAddr;
 use std::path::PathBuf;
 use std::str;
 use std;
 
 use dns_lookup::lookup_host;
-use std::error::Error;
 
 pub struct Config {
     pub addr: SocketAddr,
@@ -23,6 +24,8 @@ quick_error! {
 impl Config {
     pub fn new(hostname: &str, port: &str, chunk_index_storage: &str) -> Result<Config, ParseError> {
         let ips = lookup_host(hostname).map_err(|e| ParseError::InvalidHostname(e.description().into()))?;
+        // For simplicity, we only support ipv4 for now...
+        let ips : Vec<_> = ips.into_iter().filter(|ip| match ip {&IpAddr::V4(_) => true, _ => false}).collect();
         if ips.len() == 0 {
             return Err(ParseError::InvalidHostname("No IPs found associated with the given hostname".into()))
         }
