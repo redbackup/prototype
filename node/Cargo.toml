@@ -13,6 +13,7 @@ tokio-core = "0.1"
 tokio-proto = "0.1"
 tokio-service = "0.1"
 quick-error = "1.2.1"
+tokio-timer = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 serde_derive = "1.0.16"
 serde = "1.0.16"

@@ -1,7 +1,7 @@
 use super::schema::*;
 use chrono::prelude::*;
 
-#[derive(Queryable,Insertable,Identifiable,PartialEq,Debug)]
+#[derive(Queryable,Insertable,Identifiable,PartialEq,Debug, Clone)]
 #[table_name = "chunks"]
 #[primary_key(chunk_identifier)]
 pub struct Chunk {

@@ -8,3 +8,5 @@ license = "AGPL-3.0"
 [dependencies]
 log = "0.3.8"
 quick-error = "1.2.1"
+sha2 = "0.7.0"
+digest = { version = "0.7.2", features = ["std"]}

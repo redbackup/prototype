@@ -6,6 +6,7 @@ pub use self::config::RestoreBackupConfig;
 
 use std::io;
 use std::path::PathBuf;
+use std::sync::mpsc::Sender;
 
 use tokio_core;
 use tokio_service::Service;
@@ -18,6 +19,7 @@ use chrono::prelude::*;
 use redbackup_protocol::RedClientProto;
 use redbackup_protocol::message::*;
 
+use super::Progress;
 use super::config::Config;
 use super::chunk_index::ChunkIndex;
 
@@ -26,6 +28,7 @@ pub struct RestoreBackupContext {
     restore_config: RestoreBackupConfig,
     event_loop: Core,
     handle: Handle,
+    progress_sender: Sender<Progress>,
 }
 
 impl RestoreBackupContext {
@@ -33,6 +36,7 @@ impl RestoreBackupContext {
     pub fn new(
         config: Config,
         restore_config: RestoreBackupConfig,
+        progress_sender : Sender<Progress>
     ) -> Result<Self, RestoreBackupError> {
         let event_loop = tokio_core::reactor::Core::new()?;
         let handle = event_loop.handle();
@@ -42,6 +46,7 @@ impl RestoreBackupContext {
             restore_config,
             event_loop,
             handle,
+            progress_sender,
         })
     }
 
@@ -108,7 +113,9 @@ impl RestoreBackupContext {
     }
 
     fn restore_chunks(&mut self, chunk_index: &ChunkIndex) -> Result<(), RestoreBackupError> {
-        for chunk in chunk_index.get_all_chunks()? {
+        let chunks = chunk_index.get_all_chunks()?;
+        let mut progress = Progress::new(self.progress_sender.clone(), chunks.len());
+        for chunk in chunks {
             debug!("Request chunk {}", chunk.chunk_identifier);
             let chunk_content = self.request_chunk(chunk.chunk_identifier.clone())?;
 
@@ -118,6 +125,7 @@ impl RestoreBackupContext {
 
             utils::restore_file_content(&chunk_content.chunk_content.as_slice(), &path)?;
             debug!("Restored chunk {} to {:?}",chunk.chunk_identifier, path);
+            progress.increment();
         }
         Ok(())
     }

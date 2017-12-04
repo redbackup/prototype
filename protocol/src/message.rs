@@ -51,9 +51,7 @@ impl ReturnDesignation {
     pub fn new(designation: bool) -> Message {
         Message {
             timestamp: Utc::now(),
-            body: MessageKind::ReturnDesignation(ReturnDesignation {
-                designation,
-            }),
+            body: MessageKind::ReturnDesignation(ReturnDesignation { designation }),
         }
     }
 }
@@ -67,8 +65,8 @@ impl InvalidRequest {
     pub fn new(reason: &str) -> Message {
         Message {
             timestamp: Utc::now(),
-            body: MessageKind::InvalidRequest(InvalidRequest{
-                reason: reason.into()
+            body: MessageKind::InvalidRequest(InvalidRequest {
+                reason: reason.into(),
             }),
         }
     }
@@ -83,14 +81,14 @@ impl InternalError {
     pub fn new(reason: &str) -> Message {
         Message {
             timestamp: Utc::now(),
-            body: MessageKind::InternalError(InternalError{
-                reason: reason.into()
+            body: MessageKind::InternalError(InternalError {
+                reason: reason.into(),
             }),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct ChunkElement {
     pub chunk_identifier: String,
     pub expiration_date: DateTime<Utc>,
@@ -100,47 +98,42 @@ pub struct ChunkElement {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct GetChunkStates {
-    pub chunks: Vec<ChunkElement>
+    pub chunks: Vec<ChunkElement>,
 }
 
 impl GetChunkStates {
     pub fn new(chunks: Vec<ChunkElement>) -> Message {
         Message {
             timestamp: Utc::now(),
-            body: MessageKind::GetChunkStates(GetChunkStates {
-                chunks
-            }),
+            body: MessageKind::GetChunkStates(GetChunkStates { chunks }),
         }
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct ReturnChunkStates {
-    pub chunks: Vec<ChunkElement>
+    pub chunks: Vec<ChunkElement>,
 }
 
 impl ReturnChunkStates {
-   pub fn new(chunks: Vec<ChunkElement>) -> Message {
+    pub fn new(chunks: Vec<ChunkElement>) -> Message {
         Message {
             timestamp: Utc::now(),
-            body: MessageKind::ReturnChunkStates(ReturnChunkStates {
-                chunks
-            }),
+            body: MessageKind::ReturnChunkStates(ReturnChunkStates { chunks }),
         }
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct ChunkContentElement {
-    #[serde(with = "serde_bytes")]
-    pub chunk_content: Vec<u8>,
+    #[serde(with = "serde_bytes")] pub chunk_content: Vec<u8>,
     pub chunk_identifier: String,
     pub expiration_date: DateTime<Utc>,
     pub root_handle: bool,
 }
 
 impl Into<ChunkElement> for ChunkContentElement {
-    fn into(self) -> ChunkElement{
+    fn into(self) -> ChunkElement {
         ChunkElement {
             chunk_identifier: self.chunk_identifier,
             expiration_date: self.expiration_date,
@@ -152,26 +145,23 @@ impl Into<ChunkElement> for ChunkContentElement {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct PostChunks {
-    pub chunks: Vec<ChunkContentElement>
+    pub chunks: Vec<ChunkContentElement>,
 }
 
 impl PostChunks {
-   pub fn new(chunks: Vec<ChunkContentElement>) -> Message {
+    pub fn new(chunks: Vec<ChunkContentElement>) -> Message {
         Message {
             timestamp: Utc::now(),
-            body: MessageKind::PostChunks(PostChunks {
-                chunks
-            }),
+            body: MessageKind::PostChunks(PostChunks { chunks }),
         }
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct GetRootHandles {
-}
+pub struct GetRootHandles {}
 
 impl GetRootHandles {
-   pub fn new() -> Message {
+    pub fn new() -> Message {
         Message {
             timestamp: Utc::now(),
             body: MessageKind::GetRootHandles(GetRootHandles {}),
@@ -181,16 +171,14 @@ impl GetRootHandles {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct ReturnRootHandles {
-    pub root_handle_chunks: Vec<ChunkContentElement>
+    pub root_handle_chunks: Vec<ChunkContentElement>,
 }
 
 impl ReturnRootHandles {
-   pub fn new(root_handle_chunks: Vec<ChunkContentElement>) -> Message {
+    pub fn new(root_handle_chunks: Vec<ChunkContentElement>) -> Message {
         Message {
             timestamp: Utc::now(),
-            body: MessageKind::ReturnRootHandles(ReturnRootHandles {
-                root_handle_chunks
-            }),
+            body: MessageKind::ReturnRootHandles(ReturnRootHandles { root_handle_chunks }),
         }
     }
 }
@@ -202,44 +190,38 @@ pub struct GetChunks {
 }
 
 impl GetChunks {
-   pub fn new(chunk_identifiers: Vec<String>) -> Message {
+    pub fn new(chunk_identifiers: Vec<String>) -> Message {
         Message {
             timestamp: Utc::now(),
-            body: MessageKind::GetChunks(GetChunks {
-                chunk_identifiers
-            }),
+            body: MessageKind::GetChunks(GetChunks { chunk_identifiers }),
         }
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct ReturnChunks {
-    pub chunks: Vec<ChunkContentElement>
+    pub chunks: Vec<ChunkContentElement>,
 }
 
 impl ReturnChunks {
     pub fn new(chunks: Vec<ChunkContentElement>) -> Message {
         Message {
             timestamp: Utc::now(),
-            body: MessageKind::ReturnChunks(ReturnChunks {
-                chunks
-            }),
+            body: MessageKind::ReturnChunks(ReturnChunks { chunks }),
         }
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct AcknowledgeChunks {
-    pub chunks: Vec<ChunkElement>
+    pub chunks: Vec<ChunkElement>,
 }
 
 impl AcknowledgeChunks {
-   pub fn new(chunks: Vec<ChunkElement>) -> Message {
+    pub fn new(chunks: Vec<ChunkElement>) -> Message {
         Message {
             timestamp: Utc::now(),
-            body: MessageKind::AcknowledgeChunks(AcknowledgeChunks {
-                chunks
-            }),
+            body: MessageKind::AcknowledgeChunks(AcknowledgeChunks { chunks }),
         }
     }
 }

@@ -6,20 +6,22 @@ pub use self::create_error::CreateError;
 pub use self::config::CreateBackupConfig;
 
 use std::path::PathBuf;
+use std::sync::mpsc::Sender;
 
 use tokio_core;
 use tokio_service::Service;
 use tokio_proto::TcpClient;
-use tokio_core::reactor::{Core,Handle};
+use tokio_core::reactor::{Core, Handle};
 use futures::*;
 use chrono::prelude::*;
 
 use redbackup_protocol::RedClientProto;
 use redbackup_protocol::message::*;
 
+use super::progress::Progress;
 use super::config::Config;
 use super::chunk_index::{ChunkIndex, DatabaseError};
-use super::chunk_index::schema::{Folder, NewFolder, File, NewFile, NewChunk, Chunk};
+use super::chunk_index::schema::{Chunk, File, Folder, NewChunk, NewFile, NewFolder};
 use self::create_chunk_index::CreateChunkIndex;
 
 pub struct CreateBackupContext {
@@ -28,15 +30,26 @@ pub struct CreateBackupContext {
     chunk_index: ChunkIndex,
     event_loop: Core,
     handle: Handle,
+    progress_sender: Sender<Progress>,
 }
 
 impl CreateBackupContext {
     /// Create initial structures for a new backup.
-    pub fn new(config: Config, create_backup_config: CreateBackupConfig) -> Result<Self,CreateError> {
+    pub fn new(
+        config: Config,
+        create_backup_config: CreateBackupConfig,
+        progress_sender: Sender<Progress>,
+    ) -> Result<Self, CreateError> {
         let now = Utc::now();
-        let chunk_index_file = PathBuf::from(format!("{}/chunk_index-{}.db",
+        let chunk_index_file = PathBuf::from(format!(
+            "{}/chunk_index-{}.db",
             config.chunk_index_storage.to_str().unwrap(),
-            now.to_rfc3339()));
+            now.to_rfc3339()
+        ));
+        info!(
+            "Creating chunk index {}",
+            chunk_index_file.to_string_lossy()
+        );
 
         let event_loop = tokio_core::reactor::Core::new()?;
         let handle = event_loop.handle();
@@ -48,6 +61,7 @@ impl CreateBackupContext {
             chunk_index: ChunkIndex::new(chunk_index_file, now)?,
             event_loop,
             handle,
+            progress_sender,
         })
     }
 
@@ -63,9 +77,11 @@ impl CreateBackupContext {
         info!("Check which chunks are already on the node");
         debug!("Collecting chunks from database");
         let mut chunks = self.chunk_index.get_all_chunks()?;
-        let chunk_elements = chunks.iter().map(|e| self.chunk_to_chunk_element(e)).collect();
+        let chunk_elements = chunks
+            .iter()
+            .map(|e| self.chunk_to_chunk_element(e))
+            .collect();
 
-        debug!("Get available chunks from node");
         let node_chunks = self.get_available_chunks_from_node(chunk_elements)?;
         info!(
             "{} of total {} chunks are not yet stored on the node",
@@ -75,12 +91,16 @@ impl CreateBackupContext {
         Self::reduce_by_remaining_chunks(&mut chunks, &node_chunks);
 
         info!("Send chunks to node");
+        let mut progress = Progress::new(self.progress_sender.clone(), chunks.len());
+
+        // Send chunks one by one.
         for chunk in chunks {
             debug!("Collect chunk {} content", chunk.chunk_identifier);
             let chunk_ce = self.chunk_to_chunk_content_element(&chunk)?;
             debug!("Send chunk {} to node", chunk_ce.chunk_identifier);
             self.send_chunk(chunk_ce)?;
             debug!("Successfully sent chunk {} to node", chunk.chunk_identifier);
+            progress.increment();
         }
         info!("Successfully sent all data chunks.");
 
@@ -92,18 +112,19 @@ impl CreateBackupContext {
     }
 
     /// Send a backup designation to the node
-    fn request_designation(&mut self) -> Result<(),CreateError> {
+    fn request_designation(&mut self) -> Result<(), CreateError> {
         let expiration_date = self.create_backup_config.expiration_date.clone();
         let req = GetDesignation::new(0, expiration_date);
-        let designation = self.message_node_sync(req)
-            .map(|res| match res.body {
-                MessageKind::ReturnDesignation(body) => Ok(body.designation),
-                _ => Err(CreateError::NodeCommunicationError),
-            })?;
+        let designation = self.message_node_sync(req).map(|res| match res.body {
+            MessageKind::ReturnDesignation(body) => Ok(body.designation),
+            _ => Err(CreateError::NodeCommunicationError),
+        })?;
 
         match designation {
             Ok(true) => Ok(()),
-            Ok(false) => Err(CreateError::DesignationNotGrantedError(format!("{:?}", self.config.addr))),
+            Ok(false) => Err(CreateError::DesignationNotGrantedError(
+                format!("{:?}", self.config.addr),
+            )),
             Err(e) => Err(e),
         }
     }
@@ -111,29 +132,31 @@ impl CreateBackupContext {
     /// Ask the node, which chunks of `chunk_elements` he already has.
     fn get_available_chunks_from_node(
         &mut self,
-        chunk_elements: Vec<ChunkElement>
-    ) -> Result<Vec<ChunkElement>,CreateError> {
+        chunk_elements: Vec<ChunkElement>,
+    ) -> Result<Vec<ChunkElement>, CreateError> {
         let req = GetChunkStates::new(chunk_elements);
-        self.message_node_sync(req)
-            .map(|res| match res.body {
-                MessageKind::ReturnChunkStates(body) => Ok(body.chunks),
-                _ => Err(CreateError::NodeCommunicationError),
-            })?
+        self.message_node_sync(req).map(|res| match res.body {
+            MessageKind::ReturnChunkStates(body) => Ok(body.chunks),
+            _ => Err(CreateError::NodeCommunicationError),
+        })?
     }
 
     /// Remove items in vector `reduction` from vector `elements` by the chun_identifier.
     fn reduce_by_remaining_chunks(elements: &mut Vec<Chunk>, reduction: &Vec<ChunkElement>) {
         elements.retain(|e| {
-                reduction.iter().filter(|x| e.chunk_identifier == x.chunk_identifier)
+            reduction
+                .iter()
+                .filter(|x| e.chunk_identifier == x.chunk_identifier)
                 .count() == 0
-            });
+        });
     }
 
     /// Send the `chunk` to the node, raising an Error if the chunk was not acknowledged.
     fn send_chunk(&mut self, chunk: ChunkContentElement) -> Result<(), CreateError> {
         let chunk_identifier = chunk.chunk_identifier.clone();
 
-        let req = PostChunks::new(vec!(chunk));
+        info!("Sending PostChunks message for {}", chunk.chunk_identifier);
+        let req = PostChunks::new(vec![chunk]);
         let acknowledged_chunks: Vec<ChunkElement> = self.message_node_sync(req)
             .map(|res| match res.body {
                 MessageKind::AcknowledgeChunks(body) => Some(body.chunks),
@@ -141,11 +164,15 @@ impl CreateBackupContext {
             })?
             .ok_or(CreateError::NodeCommunicationError)?;
 
-        let acknowledged_chunk: &ChunkElement = acknowledged_chunks.get(0)
+        let acknowledged_chunk: &ChunkElement = acknowledged_chunks
+            .get(0)
             .ok_or(CreateError::ChunkNotAcknowledged(chunk_identifier.clone()))?;
 
         if acknowledged_chunk.chunk_identifier == chunk_identifier {
-            debug!("Acknowledged chunk: {}", acknowledged_chunk.chunk_identifier);
+            debug!(
+                "Acknowledged chunk: {}",
+                acknowledged_chunk.chunk_identifier
+            );
             Ok(())
         } else {
             error!(
@@ -164,8 +191,7 @@ impl CreateBackupContext {
         let chunk_identifier = create_utils::file_hash(&file_name)?;
         let chunk_content = create_utils::read_file_content(&file_name)?;
         let expiration_date = self.create_backup_config.expiration_date.clone();
-        debug!("Send chunk index {} to node", chunk_identifier);
-        self.send_chunk(ChunkContentElement{
+        self.send_chunk(ChunkContentElement {
             chunk_identifier,
             chunk_content,
             expiration_date,
@@ -178,15 +204,17 @@ impl CreateBackupContext {
         let future = TcpClient::new(RedClientProto)
             .connect(&self.config.addr, &self.handle.clone())
             .and_then(|client| client.call(message));
-        self.event_loop.run(future).map_err(|e| CreateError::from(e))
+        self.event_loop
+            .run(future)
+            .map_err(|e| CreateError::from(e))
     }
 
 
     /// Map a `Chunk` to a `ChunkContentElement` enriched with the file content.
     fn chunk_to_chunk_content_element(
-        &self, chunk: &Chunk
+        &self,
+        chunk: &Chunk,
     ) -> Result<ChunkContentElement, CreateError> {
-
         // Get full path of this chunk's file
         let mut path = self.create_backup_config.backup_dir.clone();
         path.pop(); // The last folder here is the same as the root folder of the file

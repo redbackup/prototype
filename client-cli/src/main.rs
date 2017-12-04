@@ -3,10 +3,13 @@ extern crate clap;
 extern crate env_logger;
 extern crate redbackup_client;
 
+use std::thread;
 use std::process;
+use std::sync::mpsc;
+use std::sync::mpsc::{Sender, Receiver};
 
 use redbackup_client::config::{Config, ParseError};
-use redbackup_client::{CreateBackupConfig, CreateBackupConfigError, RestoreBackupConfig, RestoreBackupConfigError};
+use redbackup_client::{CreateBackupConfig, CreateBackupConfigError, RestoreBackupConfig, RestoreBackupConfigError, Progress};
 
 use clap::{App, Arg, SubCommand};
 
@@ -112,7 +115,9 @@ fn main() {
                 };
                 process::exit(1);
             });
-            redbackup_client::create_backup(config, backup_cfg).unwrap_or_else(|err| handle_error(err));
+            
+            let progress_sender = initialize_progress_observer();
+            redbackup_client::create_backup(config, backup_cfg, progress_sender).unwrap_or_else(|err| handle_error(err));
         },
 
         ("list", _) => match redbackup_client::list_backups(config) {
@@ -139,7 +144,8 @@ fn main() {
                 };
                 process::exit(1);
             });
-            redbackup_client::restore_backup(config, restore_cfg).unwrap_or_else(|err| handle_error(err));
+            let progress_sender = initialize_progress_observer();
+            redbackup_client::restore_backup(config, restore_cfg, progress_sender).unwrap_or_else(|err| handle_error(err));
         },
 
         (&_, _) => eprintln!("No command was used!"),
@@ -151,4 +157,17 @@ fn handle_error<T: std::error::Error>(err: T) {
     eprintln!("Description: {}", err.description());
     eprintln!("Cause (if any): {:?}", err.cause());
     process::exit(1);
+}
+
+fn initialize_progress_observer() -> Sender<Progress> {
+    let (tx, rx): (Sender<Progress>, Receiver<_>) = mpsc::channel();
+    thread::spawn(move || {
+        loop {
+            match rx.recv() {
+                Ok(msg) => println!("{}", msg.status_msg()),
+                Err(_) => break
+            }
+        }
+    });
+    tx
 }

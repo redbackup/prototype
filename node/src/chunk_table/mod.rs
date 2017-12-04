@@ -12,6 +12,7 @@ pub use self::chunk::Chunk;
 use self::schema::chunks;
 
 embed_migrations!("migrations");
+no_arg_sql_function!(RANDOM, (), "Represents the sql RANDOM() function");
 
 quick_error! {
     #[derive(Debug)]
@@ -83,6 +84,15 @@ impl ChunkTable {
         let conn = self.db_pool.get()?;
         diesel::delete(chunks::dsl::chunks.find(chunk_identifier))
             .execute(&*conn)
+            .map_err(|e| DatabaseError::from(e))
+    }
+
+    pub fn load_random_chunks(&self, number_of_chunks: i64) -> Result<Vec<Chunk>, DatabaseError> {
+        let conn = self.db_pool.get()?;
+        chunks::dsl::chunks
+            .order(RANDOM)
+            .limit(number_of_chunks)
+            .load(&*conn)
             .map_err(|e| DatabaseError::from(e))
     }
 
