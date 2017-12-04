@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use r2d2;
+use r2d2_diesel;
 use diesel;
 use r2d2::{Config,Pool};
 use diesel::sqlite::SqliteConnection;
@@ -58,9 +59,17 @@ impl ChunkIndex {
         self.file_name.clone()
     }
 
+    pub fn get_db_connection(&self) -> Result<r2d2::PooledConnection<r2d2_diesel::ConnectionManager<diesel::SqliteConnection>>, DatabaseError> {
+        let conn = self.db_pool.get()?;
+        // Make sure the database is opened in Write-Ahead-Log mode.
+        // Note that we currently have no way to detect if this failed.
+        conn.execute("PRAGMA journal_mode=WAL;")?;
+        Ok(conn)
+    }
+
     pub fn add_folder(&self, new_folder: NewFolder) -> Result<Folder,DatabaseError> {
         use self::folders::dsl;
-        let conn = self.db_pool.get()?;
+        let conn = self.get_db_connection()?;
         diesel::insert(&new_folder).into(self::folders::table).execute(&*conn)?;
 
         let query_folder_name = dsl::folders.filter(dsl::name.eq(&new_folder.name));
@@ -75,7 +84,7 @@ impl ChunkIndex {
 
     pub fn add_file(&self, new_file: NewFile) -> Result<File,DatabaseError> {
         use self::files::dsl;
-        let conn = self.db_pool.get()?;
+        let conn = self.get_db_connection()?;
         diesel::insert(&new_file).into(self::files::table).execute(&*conn)?;
 
         let file = dsl::files.filter(dsl::name.eq(&new_file.name))
@@ -85,7 +94,7 @@ impl ChunkIndex {
 
     pub fn add_chunk(&self, new_chunk: NewChunk) -> Result<Chunk,DatabaseError> {
         use self::chunks::dsl;
-        let conn = self.db_pool.get()?;
+        let conn = self.get_db_connection()?;
         diesel::insert(&new_chunk).into(self::chunks::table).execute(&*conn)?;
 
         let chunk = dsl::chunks.filter(dsl::chunk_identifier.eq(&new_chunk.chunk_identifier))
@@ -94,14 +103,14 @@ impl ChunkIndex {
     }
 
     pub fn get_all_chunks(&self) -> Result<Vec<Chunk>, DatabaseError> {
-        let conn = self.db_pool.get()?;
+        let conn = self.get_db_connection()?;
         self::chunks::table.load(&*conn).map_err(|e| DatabaseError::from(e))
     }
 
     pub fn get_file_path(&self, file_id: i32) -> Result<PathBuf, DatabaseError> {
         use self::folders::dsl;
         use self::files;
-        let conn = self.db_pool.get()?;
+        let conn = self.get_db_connection()?;
 
         conn.transaction::<_, DatabaseError, _>(|| {
 
@@ -129,7 +138,7 @@ impl ChunkIndex {
 
     pub fn get_folders_by_parent(&self, parent_folder: Option<i32>) -> Result<Vec<Folder>, DatabaseError> {
         use self::folders::dsl;
-        let conn = self.db_pool.get()?;
+        let conn = self.get_db_connection()?;
         if let Some(parent_folder) = parent_folder {
             dsl::folders.filter(dsl::parent_folder.eq(parent_folder)).load::<Folder>(&*conn).map_err(|e| DatabaseError::from(e))
         } else {

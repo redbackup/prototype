@@ -3,6 +3,7 @@ use diesel::sqlite::SqliteConnection;
 use r2d2_diesel::ConnectionManager;
 use self::diesel::prelude::*;
 use r2d2;
+use r2d2_diesel;
 use diesel;
 
 mod chunk;
@@ -62,9 +63,17 @@ impl ChunkTable {
         Ok(ChunkTable { db_pool })
     }
 
+    pub fn get_db_connection(&self) -> Result<r2d2::PooledConnection<r2d2_diesel::ConnectionManager<diesel::SqliteConnection>>, DatabaseError> {
+        let conn = self.db_pool.get()?;
+        // Make sure the database is opened in Write-Ahead-Log mode.
+        // Note that we currently have no way to detect if this failed.
+        conn.execute("PRAGMA journal_mode=WAL;")?;
+        Ok(conn)
+    }
+
     #[allow(dead_code)]
     pub fn get_chunk(&self, chunk_identifier: &str) -> Result<Chunk, DatabaseError> {
-        let conn = self.db_pool.get()?;
+        let conn = self.get_db_connection()?;
         chunks::dsl::chunks
             .find(chunk_identifier)
             .first(&*conn)
@@ -72,7 +81,7 @@ impl ChunkTable {
     }
 
     pub fn get_root_handles(&self) -> Result<Vec<Chunk>, DatabaseError> {
-        let conn = self.db_pool.get()?;
+        let conn = self.get_db_connection()?;
         chunks::dsl::chunks
             .filter(chunks::dsl::root_handle.eq(true))
             .load(&*conn)
@@ -81,14 +90,14 @@ impl ChunkTable {
 
     #[allow(dead_code)]
     pub fn remove_chunk(&self, chunk_identifier: &str) -> Result<usize, DatabaseError> {
-        let conn = self.db_pool.get()?;
+        let conn = self.get_db_connection()?;
         diesel::delete(chunks::dsl::chunks.find(chunk_identifier))
             .execute(&*conn)
             .map_err(|e| DatabaseError::from(e))
     }
 
     pub fn load_random_chunks(&self, number_of_chunks: i64) -> Result<Vec<Chunk>, DatabaseError> {
-        let conn = self.db_pool.get()?;
+        let conn = self.get_db_connection()?;
         chunks::dsl::chunks
             .order(RANDOM)
             .limit(number_of_chunks)
@@ -97,7 +106,7 @@ impl ChunkTable {
     }
 
     pub fn update_chunk(&self, chunky: &Chunk) -> Result<Chunk, DatabaseError> {
-        let conn = self.db_pool.get()?;
+        let conn = self.get_db_connection()?;
         trace!("Update chunk {} as transaction", chunky.chunk_identifier);
         conn.transaction::<_, DatabaseError, _>(|| {
             let db_chunk: Chunk = chunks::dsl::chunks
@@ -145,7 +154,7 @@ impl ChunkTable {
     }
 
     pub fn add_chunk(&self, new_chunk: &Chunk) -> Result<Chunk, DatabaseError> {
-        let conn = self.db_pool.get()?;
+        let conn = self.get_db_connection()?;
 
         diesel::insert(new_chunk)
             .into(chunks::table)
