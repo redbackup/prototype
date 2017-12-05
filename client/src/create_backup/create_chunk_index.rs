@@ -4,6 +4,7 @@ use std::fs::DirEntry;
 use std::ffi::OsString;
 
 use chrono::prelude::*;
+use glob::Pattern;
 
 use super::{ChunkIndex, DatabaseError};
 use super::{Folder, NewFolder, File, NewFile, NewChunk};
@@ -30,24 +31,24 @@ quick_error! {
 pub struct CreateChunkIndex {
     chunk_index: ChunkIndex,
     path: PathBuf,
+    root_path: PathBuf,
     parent_folder: Option<Folder>,
+    exclude: Vec<Pattern>,
 }
 
 impl CreateChunkIndex {
-    pub fn new(chunk_index: &ChunkIndex, path: &PathBuf) -> Result<(), BuilderError> {
+    pub fn new(chunk_index: &ChunkIndex, path: &PathBuf, exclude: &Vec<Pattern>) -> Result<(), BuilderError> {
         debug!("Create chunk index root folder");
-        let backup_root = Self {
+        let mut create_chunk_index = Self {
             chunk_index: chunk_index.clone(),
             path: path.clone(),
+            root_path: path.clone(),
             parent_folder: None,
+            exclude: exclude.clone(),
         };
-        let parent_folder = backup_root.add_folder(path).map_err(|e| BuilderError::from(e))?;
 
-        let create_chunk_index = Self {
-            chunk_index: chunk_index.clone(),
-            path: path.clone(),
-            parent_folder: Some(parent_folder),
-        };
+        let parent_folder = create_chunk_index.add_folder(path).map_err(|e| BuilderError::from(e))?;
+        create_chunk_index.parent_folder = Some(parent_folder);
 
         debug!("Start building chunk index");
         let result = create_chunk_index.build();
@@ -59,17 +60,27 @@ impl CreateChunkIndex {
         debug!("Read content of path {:?}", self.path);
         for entry in self.path.read_dir()? {
             let entry = entry?;
+            let path = entry.path();
+            let local_path = path.strip_prefix(&self.root_path).unwrap();
+
+            if let Some(pattern) = self.exclude.iter().find(|e| e.matches_path(&local_path)) {
+                info!("Skipped {:?} because of glob pattern {})", &local_path, pattern.as_str());
+                continue;
+            }
+
             match entry.file_type() {
                 Ok(ref filetype) if filetype.is_file() => {
                     self.add_file(entry)?;
                 },
 
                 Ok(ref filetype) if filetype.is_dir()  => {
-                    let folder = self.add_folder(&entry.path())?;
+                    let folder = self.add_folder(&path)?;
                     Self {
                         chunk_index: self.chunk_index.clone(),
-                        path: entry.path(),
+                        path: path.clone(),
+                        root_path: self.root_path.clone(),
                         parent_folder: Some(folder),
+                        exclude: self.exclude.clone(),
                     }.build()?;
                 },
 
