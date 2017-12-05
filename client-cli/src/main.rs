@@ -7,7 +7,6 @@ use std::thread;
 use std::process;
 use std::sync::mpsc;
 use std::sync::mpsc::{Sender, Receiver};
-use std::error::Error;
 
 use redbackup_client::config::{Config, ParseError};
 use redbackup_client::{CreateBackupConfig, CreateBackupConfigError, RestoreBackupConfig, RestoreBackupConfigError, Progress};

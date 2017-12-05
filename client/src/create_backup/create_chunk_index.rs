@@ -64,7 +64,7 @@ impl CreateChunkIndex {
             let local_path = path.strip_prefix(&self.root_path).unwrap();
 
             if let Some(pattern) = self.exclude.iter().find(|e| e.matches_path(&local_path)) {
-                warn!("Skipped {:?} because of glob pattern {})", &local_path, pattern.as_str());
+                info!("Skipped {:?} because of glob pattern {})", &local_path, pattern.as_str());
                 continue;
             }
 
