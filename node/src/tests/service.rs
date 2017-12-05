@@ -125,9 +125,9 @@ fn post_existing_chunks_in_db() {
     let res_msg = service.call(req_msg).wait().unwrap();
 
     if let MessageKind::AcknowledgeChunks(body) = res_msg.body {
-        assert_eq!(body.chunks.len(), 1);
+        assert_eq!(body.chunks.len(), 2); // Existing chunks are acknowledged anyways...
         let expected: ChunkElement = ExampleChunkContentElement::two().into();
-        assert_eq!(body.chunks[0], expected);
+        assert_eq!(body.chunks[1], expected);
     } else {
         panic!("Expected AcknowledgeChunks message!");
     }

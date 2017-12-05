@@ -61,7 +61,7 @@ pub struct ExampleChunkContentElement {}
 impl ExampleChunkContentElement {
     pub fn one() -> ChunkContentElement {
         Self::new(
-            "d2a84f4b8b650937ec8f73cd8be2c74add5a911ba64df27458ed8229da804a26",
+            "be63d4651c02a05d188295ac3a0d56e76a847ceca28805460c4662d7bace1706",
             NaiveDate::from_ymd(2017, 11, 01).and_hms_milli(4, 9, 12, 49),
             false,
             vec![
@@ -86,7 +86,7 @@ impl ExampleChunkContentElement {
 
     pub fn two() -> ChunkContentElement {
         Self::new(
-            "a090165bdeced34bd9ba8f0aade9ffc8383c8cf7de862d34316e02b4ea2ea5a6",
+            "ad3429725c9b3f50b1eb3dee9d22590d8e41a13b3b3d0d4931a6d80a6ea286f3",
             NaiveDate::from_ymd(2019, 1, 2).and_hms_milli(9, 2, 1, 5),
             true,
             vec![111, 114, 108, 100],

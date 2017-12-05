@@ -93,6 +93,14 @@ impl NodeService {
             let mut results = Vec::new();
 
             for chunk_content in body.chunks {
+                if let Ok(chunk) = chunk_table.get_chunk(&chunk_content.chunk_identifier) {
+                    info!(
+                        "New chunk with identifier {} is already present",
+                        &chunk_content.chunk_identifier
+                    );
+                    results.push(chunk);
+                    continue
+                }
                 if let Err(err) = storage.persist(
                     &chunk_content.chunk_identifier,
                     &chunk_content.chunk_content,
