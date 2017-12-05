@@ -60,9 +60,6 @@ impl ChunkIndex {
 
     pub fn get_db_connection(&self) -> Result<PooledConnection<ConnectionManager<SqliteConnection>>, DatabaseError> {
         let conn = self.db_pool.get()?;
-        // Make sure the database is opened in Write-Ahead-Log mode.
-        // Note that we currently have no way to detect if this failed.
-        conn.execute("PRAGMA journal_mode=WAL;")?;
         Ok(conn)
     }
 
