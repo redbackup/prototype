@@ -70,7 +70,7 @@ impl CreateBackupContext {
         info!("Create chunk index from {:?}", self.create_backup_config.backup_dir);
         CreateChunkIndex::new(&self.chunk_index, &self.create_backup_config.backup_dir)?;
 
-        info!("Request designation from node");
+        info!("Request designation from node at {}", self.config.addr);
         self.request_designation()?;
         info!("Designation was granted by the node");
 
