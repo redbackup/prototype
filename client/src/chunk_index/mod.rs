@@ -1,9 +1,8 @@
 use std::path::PathBuf;
 
 use r2d2;
-use r2d2_diesel;
 use diesel;
-use r2d2::{Config,Pool};
+use r2d2::{Config,Pool, PooledConnection};
 use diesel::sqlite::SqliteConnection;
 use r2d2_diesel::ConnectionManager;
 use chrono::prelude::*;
@@ -59,7 +58,7 @@ impl ChunkIndex {
         self.file_name.clone()
     }
 
-    pub fn get_db_connection(&self) -> Result<r2d2::PooledConnection<r2d2_diesel::ConnectionManager<diesel::SqliteConnection>>, DatabaseError> {
+    pub fn get_db_connection(&self) -> Result<PooledConnection<ConnectionManager<SqliteConnection>>, DatabaseError> {
         let conn = self.db_pool.get()?;
         // Make sure the database is opened in Write-Ahead-Log mode.
         // Note that we currently have no way to detect if this failed.
