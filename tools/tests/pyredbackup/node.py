@@ -21,6 +21,7 @@ class Node:
 
     IMAGE = 'redbackup/node'
     PORT = '8080'
+    SLEEP_BEFORE_LAUNCH = 5
 
     def __init__(self, name: str, version: str, network: Network,
                  docker: DockerClient) -> None:
@@ -73,9 +74,10 @@ class Node:
         timeout because we would run in network problems otherwise (trying to
         resolve hosts that are not yet up).
         """
-        command = 'bash -c "sleep 5; /usr/local/bin/redbackup-node -k '
+        command = f'bash -c "sleep {Node.SLEEP_BEFORE_LAUNCH}; '\
+            '/usr/local/bin/redbackup-node'
         for node in self._known_nodes:
-            command += f' {node.name}'
+            command += f' -k {node.name}'
         command = command + '"'
         LOG.debug(f'command for {self.name} is {command}')
         return command

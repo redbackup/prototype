@@ -5,7 +5,7 @@ import subprocess
 
 import pytest
 
-from pyredbackup import MediumConfiguration
+from pyredbackup.configuration import MediumConfiguration, MinimalConfiguration
 
 
 def current_version() -> str:
@@ -23,6 +23,23 @@ def medium_configuration():
     """
     version = current_version()
     config = MediumConfiguration(version)
+    config.start_nodes()
+    try:
+        yield config
+    finally:
+        config.stop_nodes()
+
+    # Only clean up if everything was successful (for debugging)
+    config.clean_up()
+
+
+@pytest.fixture()
+def minimal_configuration():
+    """
+    Test fixture for py.test to simplify writing tests.
+    """
+    version = current_version()
+    config = MinimalConfiguration(version)
     config.start_nodes()
     try:
         yield config

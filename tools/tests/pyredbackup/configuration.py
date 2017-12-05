@@ -9,7 +9,8 @@ from docker.errors import ImageNotFound
 from docker.models.networks import Network
 from typing import List
 
-from pyredbackup import Client, Node
+from pyredbackup.node import Node
+from pyredbackup.client import Client
 
 LOG = logging.getLogger(__name__)
 
@@ -29,7 +30,6 @@ class BaseConfiguration(ABC):
         self.nodes = self._init_nodes()
 
     def _init_network(self) -> Network:
-        # TODO: generate based on the name...
         return self.docker.networks.create(f"redbackup_medium_{self.version}")
 
     @abstractmethod
@@ -76,6 +76,9 @@ class BaseConfiguration(ABC):
         for node in self.nodes:
             node.start()
 
+        import time
+        time.sleep(Node.SLEEP_BEFORE_LAUNCH)  # Wait until all nodes are up...
+
     def stop_nodes(self) -> None:
         """
         This is just a convenience method to call `stop` on all nodes.
@@ -111,4 +114,26 @@ class MediumConfiguration(BaseConfiguration):
         self.client_3 = Client('client3', self.version,
                                self.network, self.docker)
 
-        return self.client_1, self.client_2, self.client_3
+        return [self.client_1, self.client_2, self.client_3]
+
+
+class MinimalConfiguration(BaseConfiguration):
+    """
+    Minimal as described in
+    the test section of the SA documentation.
+    """
+
+    def _init_nodes(self) -> List[Node]:
+        LOG.info(f"Initializing nodes...")
+        self.node_a = Node('NodeA', self.version, self.network, self.docker)
+        self.node_b = Node('NodeB', self.version, self.network, self.docker)
+        self.node_a.known_nodes(self.node_b)
+        self.node_b.known_nodes(self.node_a)
+
+        return [self.node_a, self.node_b]
+
+    def _init_clients(self) -> List[Client]:
+        LOG.info(f"Initializing clients...")
+        self.client_1 = Client('client1', self.version,
+                               self.network, self.docker)
+        return [self.client_1]
