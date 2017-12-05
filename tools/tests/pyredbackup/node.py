@@ -3,13 +3,13 @@ This module contains an implementation to controll a redbackup node in a
 docker container.
 """
 import logging
-
 from typing import List
 
 from docker.client import DockerClient
 from docker.models.containers import Container
 from docker.models.networks import Network
 
+from pyredbackup.helpers import check_log_for_errors
 
 LOG = logging.getLogger(__name__)
 
@@ -88,4 +88,4 @@ class Node:
         """
         LOG.debug(f"Stopping node {self.name}")
         self.container.stop(timeout=2)
-        print(self.container.logs(stdout=True, stderr=True).decode())
+        check_log_for_errors(self.container)

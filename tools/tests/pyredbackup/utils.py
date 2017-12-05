@@ -28,9 +28,7 @@ def medium_configuration():
         yield config
     finally:
         config.stop_nodes()
-
-    # Only clean up if everything was successful (for debugging)
-    config.clean_up()
+        config.clean_up()
 
 
 @pytest.fixture()
@@ -45,6 +43,4 @@ def minimal_configuration():
         yield config
     finally:
         config.stop_nodes()
-
-    # Only clean up if everything was successful (for debugging)
-    config.clean_up()
+        config.clean_up()

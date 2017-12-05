@@ -12,9 +12,9 @@ from io import BytesIO
 from typing import List
 
 from docker.client import DockerClient
-from docker.models.containers import Container
 from docker.models.networks import Network
 
+from pyredbackup.helpers import check_log_for_errors
 from pyredbackup.backup import Backup
 from pyredbackup.node import Node
 
@@ -46,27 +46,11 @@ class Client:
         command = f'/usr/local/bin/redbackup-client -h {node.name} '\
             f'create {expiration_date} /{directory_to_send}'
 
-        with self._run_sync(command, local_path=directory_to_send,
-                            container_path='/') as (container, exit_code):
+        with self._run_sync(command, container_path='/',
+                            local_path=directory_to_send) as (container,
+                                                              exit_code):
             assert exit_code == 0
-            Client.check_log_for_errors(container)
-
-    @staticmethod
-    def check_log_for_errors(container: Container):
-        """
-        Checks all lines in the given containers log for errors.
-        If one is found, an exception is thrown.
-        """
-        problems = []
-        for line in container.logs().decode().split('\n'):
-            if line.startswith('ERROR') or line.startswith('WARN'):
-                problems.append(line)
-
-        if len(problems) != 0:
-            print("Problems found during execution:")
-            for problem in problems:
-                print(problem)
-                raise Exception("Problems found during execution!")
+            check_log_for_errors(container)
 
     def restore(self, backup_id: str, expected_directory: str, node: Node):
         """
@@ -80,7 +64,8 @@ class Client:
 
         with self._run_sync(command) as (container, exit_code):
             assert exit_code == 0
-            Client.check_log_for_errors(container)
+            check_log_for_errors(container)
+            print(container.logs().decode())
             with Client._copy_from_container(container, restore_to) as d:
                 restored = os.path.join(
                     d, restore_to[1:], os.path.split(expected_directory)[1])
@@ -108,7 +93,7 @@ class Client:
                     (backup_id, expiration_date) = line.split(' ', 1)
                     backups.append(Backup(backup_id, expiration_date))
 
-            self.check_log_for_errors(container)
+            check_log_for_errors(container)
 
         return backups
 
@@ -182,6 +167,7 @@ class Client:
                 tmp.seek(os.SEEK_SET)
                 tar = tarfile.open(fileobj=tmp, mode='r')
                 tar.extractall(path=local_dir)
+
                 yield local_dir
 
 
@@ -203,7 +189,7 @@ def are_dir_trees_equal(dir1, dir2):
     if len(dirs_cmp.left_only) > 0 or len(dirs_cmp.right_only) > 0 or \
             len(dirs_cmp.funny_files) > 0:
         LOG.error(f'Left only: {dirs_cmp.left_only}')
-        LOG.error(f'Left only: {dirs_cmp.right_only}')
+        LOG.error(f'Right only: {dirs_cmp.right_only}')
         LOG.error(f'Funny Files: {dirs_cmp.funny_files}')
         return False
     (_, mismatch, errors) = filecmp.cmpfiles(
