@@ -68,9 +68,9 @@ impl Config {
             let ips : Vec<_> = ips.into_iter().filter(|ip| match ip {&IpAddr::V4(_) => true, _ => false}).collect();
 
             if ips.len() == 0 {
-                return Err(ParseError::NoIPsFound(format!("No IPv4 addrs found associated with the given hostname {}", known_node.clone())))
+                return Err(ParseError::NoIPsFound(format!("No IPv4 address found associated with the given hostname {}", known_node.clone())))
             }else if ips.len() > 1 {
-                warn!("Fount more than one possible IP for the given host. Will use the first one...")
+                warn!("Found more than one possible IP for the given host. Will use the first one...")
             }
 
             let port : u16 = if let Some(portstr) = split.get(1) {
