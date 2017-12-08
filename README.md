@@ -13,24 +13,27 @@ We build docker images on every push. This allows you to test the prototype with
 Please note that some basic understanding of docker is required to proceed with the commands below.
 
 ```bash
+# Get the latest git tag version from https://git.redbackup.org/projects/RED/repos/prototype
+VERSION=0.11.0
+
 # Firstly, we create a dedicated Network
 docker network create redbackup-demo
 
 # Launch a node in the background
-docker run --name Node --network redbackup-demo --rm -d -e RUST_LOG=redbackup=debug redbackup/node:0.11.0
+docker run --name Node --network redbackup-demo --rm -d -e RUST_LOG=redbackup=debug redbackup/node:$VERSION
 
 # Copy some sample data into a temporary directory
 cp -r /some/data/to/backup back-me-up/
 
 # Lets back it up
-docker run --name Client --network redbackup-demo --rm -v "$(pwd)/back-me-up":/data:z -e RUST_LOG=redbackup=warn redbackup/client:0.11.0 -h Node create 2018-04-12T17:49 /data/
+docker run --name Client --network redbackup-demo --rm -v "$(pwd)/back-me-up":/data:z -e RUST_LOG=redbackup=warn redbackup/client:$VERSION -h Node create 2018-04-12T17:49 /data/
 
 # And lets restore it to another place...
 # Fist, we need to list all available backups:
-docker run --name Client --network redbackup-demo --rm -e RUST_LOG=redbackup=warn redbackup/client:0.11.0 -h Node list
+docker run --name Client --network redbackup-demo --rm -e RUST_LOG=redbackup=warn redbackup/client:$VERSION -h Node list
 
 # Next, pick the first (and only) Backup-ID from the output and replace BACKUP_ID in the next command with its value
-docker run --name Client --network redbackup-demo --rm -v "$(pwd)/restore-me":/data:z -e RUST_LOG=redbackup=warn redbackup/client:0.11.0 -h Node restore BACKUP_ID /data/
+docker run --name Client --network redbackup-demo --rm -v "$(pwd)/restore-me":/data:z -e RUST_LOG=redbackup=warn redbackup/client:$VERSION -h Node restore BACKUP_ID /data/
 
 # All data is now restored in the directory "./restore-me"
 
