@@ -8,9 +8,9 @@ This is free software, published under the [AGPL-License](https://www.gnu.org/li
 
 ## Trying it out
 
-We build docker images on every push. This allows you to test the prototype out without a complex setup. All you need is [docker](https://www.docker.com/).
+We build docker images on every push. This allows you to test the prototype without a complex setup. All you need is [docker](https://www.docker.com/).
 
-Please note that some basic understanding of docker is required to understand the commands below
+Please note that some basic understanding of docker is required to proceed with the commands below.
 
 ```bash
 # Firstly, we create a dedicated Network
@@ -51,13 +51,13 @@ $ cd prototype/
 $ cargo build --all
 ```
 
-The project ist structured in the form of a [cargo workspace](https://github.com/rust-lang/rfcs/blob/master/text/1525-cargo-workspace.md), which means that you can build and tests all module at once in the project root using the `--all` parameter.
+The project ist structured in the form of a [cargo workspace](https://github.com/rust-lang/rfcs/blob/master/text/1525-cargo-workspace.md), which means that you can build and tests all modules at once in the project root using the `--all` parameter.
 
 ## Installation
 
 You can deploy either a docker image in a docker infrastructure or install the binaries directly.
 Note that we currently build images for Linux 64 bit only. If you need another plattform, you have to build
-the project manually (See section above)
+the project manually (see section above).
 
 Make sure you also have `libsqlite3` installed (e.g. `apt-get install libsqlite3`)
 
@@ -66,7 +66,7 @@ You can download the following precompiled binaries (called `binary-release-linu
 - redbackup-client-cli
 - redbackup-node-cli
 
-You can place the binary where every you want but we recommend to place them in `/usr/local/bin`. Dont forget to make them executable.
+You can place the binary where you want but we recommend to place them in `/usr/local/bin`. Don't forget to make them executable.
 
 ```bash
 cp redbackup-client-cli /usr/local/bin
@@ -75,7 +75,7 @@ chmod a+x /usr/local/bin/redbackup-client-cli
 chmod a+x /usr/local/bin/redbackup-node-cli
 ```
 
-Thats thats it. You can now launch the application.
+That's it. You can now launch the application.
 
 ```
 redbackup-client-cli --help
