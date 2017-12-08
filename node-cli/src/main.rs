@@ -3,9 +3,9 @@ extern crate clap;
 extern crate env_logger;
 extern crate redbackup_node;
 
-use clap::{App, Arg};
-use redbackup_node::config::{Config, ParseError};
 use std::process;
+use clap::{App, Arg};
+use redbackup_node::config::Config;
 
 fn main() {
     let matches = App::new("redbackup node-cli")
@@ -56,12 +56,7 @@ fn main() {
         .collect::<Vec<_>>();
 
     let conf = Config::new(ip, port, storage_dir, db_file, known_nodes).unwrap_or_else(|err| {
-        match err {
-            ParseError::InvalidIp(err) => eprintln!("The given IP could not be parsed ({})", err),
-            ParseError::InvalidPort(err) => {
-                eprintln!("The given Port could not be parsed ({})", err)
-            }
-        };
+        eprintln!("{}", err);
         process::exit(1);
     });
 

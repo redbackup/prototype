@@ -75,7 +75,7 @@ impl CreateBackupContext {
         )?;
         info!("The chunk index was built successfully");
 
-        info!("Request designation from node");
+        info!("Request designation from node at {}", self.config.addr);
         self.request_designation()?;
         info!("Designation was granted by the node");
 

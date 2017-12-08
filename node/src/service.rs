@@ -4,7 +4,6 @@ use futures::future;
 use futures::Future;
 use futures_cpupool::CpuPool;
 use tokio_service::Service;
-use std::error::Error;
 
 use redbackup_protocol::{Message, MessageKind};
 use redbackup_storage::Storage;
@@ -94,21 +93,37 @@ impl NodeService {
             let mut results = Vec::new();
 
             for chunk_content in body.chunks {
+                if let Ok(chunk) = chunk_table.get_chunk(&chunk_content.chunk_identifier) {
+                    info!(
+                        "New chunk with identifier {} is already present",
+                        &chunk_content.chunk_identifier
+                    );
+                    results.push(chunk);
+                    continue
+                }
                 if let Err(err) = storage.persist(
                     &chunk_content.chunk_identifier,
                     &chunk_content.chunk_content,
                 ) {
-                    error!("Failed to persist new chunk: {:?}", err.description());
+                    error!("Failed to persist new chunk: {}", err);
                     continue;
                 }
-
-                let chunk = Chunk::from(chunk_content);
-                let result = chunk_table.add_chunk(&chunk);
-                if let Ok(new_chunk) = result {
-                    debug!("Successfully stored chunk {}", new_chunk.chunk_identifier);
-                    results.push(new_chunk);
+                if let Err(err) = storage.verify(&chunk_content.chunk_identifier) {
+                    error!(
+                        "Failed to verify the new chunk {}: {}. Will delete it",
+                        &chunk_content.chunk_identifier,
+                        err
+                    );
+                    storage.delete(&chunk_content.chunk_identifier).unwrap();
                 } else {
-                    error!("Failed to insert new chunk: {:?}", result.unwrap_err());
+                    let chunk = Chunk::from(chunk_content);
+                    let result = chunk_table.add_chunk(&chunk);
+                    if let Ok(new_chunk) = result {
+                        debug!("Successfully stored chunk {}", new_chunk.chunk_identifier);
+                        results.push(new_chunk);
+                    } else {
+                        error!("Failed to insert new chunk: {}", result.unwrap_err());
+                    }
                 }
             }
 
@@ -129,7 +144,9 @@ impl NodeService {
                 Ok(chunks) => {
                     let chunks = chunks
                         .into_iter()
-                        .map(|chunk| utils::chunk_to_chunk_contents_element(chunk, &storage))
+                        .map(|chunk| {
+                            utils::chunk_to_chunk_contents_element(chunk, &storage)
+                        })
                         .filter(|result| result.is_some())
                         .map(|r| r.unwrap())
                         .collect();
@@ -155,7 +172,10 @@ impl NodeService {
                     if let Some(chunk_content_element) =
                         utils::chunk_to_chunk_contents_element(chunk, &storage)
                     {
-                        debug!("Successfully received chunk {} from storage", chunk_content_element.chunk_identifier);
+                        debug!(
+                            "Successfully received chunk {} from storage",
+                            chunk_content_element.chunk_identifier
+                        );
                         results.push(chunk_content_element);
                     }
                 } else {

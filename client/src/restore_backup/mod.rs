@@ -69,7 +69,7 @@ impl RestoreBackupContext {
 
     fn restore_chunk_index(&mut self) -> Result<ChunkIndex, RestoreBackupError> {
         let chunk_identifier = &self.restore_config.backup_id;
-        debug!("Request chunk index {}", chunk_identifier);
+        debug!("Request chunk index {} from node at {}", chunk_identifier, self.config.addr);
         let message = GetChunks::new(vec![chunk_identifier.clone()]);
         let request = TcpClient::new(RedClientProto)
             .connect(&self.config.addr, &self.handle.clone())

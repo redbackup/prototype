@@ -32,7 +32,7 @@ impl ListBackupsContext {
     }
 
     pub fn run(&mut self) -> Result<Vec<(String, DateTime<Utc>)>, ListBackupsError> {
-        info!("Request root handles from node");
+        info!("Request root handles from node at {}", self.config.addr);
         Ok(self.get_root_handles()?.iter().map(|e| (e.chunk_identifier.clone(), e.expiration_date)).collect())
     }
 
