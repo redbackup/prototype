@@ -37,6 +37,23 @@ class Client:
         self.version = version
         LOG.debug(f"Client {self.name} initialized")
 
+    def prepare_backup_detached(self, directory_to_send: str,
+                                expiration_date: str, node: Node):
+        """
+        Creates a new container with the command to backup data from
+        the given directory with the given expiration date to the
+        given node. the returned container is not started yet.
+
+        This method is intended for async usage. Use backup for
+        synchronous calls.
+        """
+        command = f'/usr/local/bin/redbackup-client -h {node.name} '\
+            f'create {expiration_date} /{directory_to_send}'
+
+        container = self._prepare_container(command, None, '/',
+                                            directory_to_send)
+        return container
+
     def backup(self, directory_to_send: str, expiration_date: str, node: Node):
         """
         Backs up the given (local) directory onto the given node with the
@@ -65,10 +82,9 @@ class Client:
         with self._run_sync(command) as (container, exit_code):
             assert exit_code == 0
             check_log_for_errors(container)
-            print(container.logs().decode())
-            with Client._copy_from_container(container, restore_to) as d:
+            with Client._copy_from_container(container, restore_to) as fld:
                 restored = os.path.join(
-                    d, restore_to[1:], os.path.split(expected_directory)[1])
+                    fld, restore_to[1:], os.path.split(expected_directory)[1])
                 LOG.info('Comparing directory contents of '
                          f'{restored} and {expected_directory}')
                 assert are_dir_trees_equal(restored, expected_directory), \
@@ -97,15 +113,8 @@ class Client:
 
         return backups
 
-    @contextmanager
-    def _run_sync(self, command: str, env=None, container_path=None,
-                  local_path=None):
-        """
-        Runs the given command on the client and blocks until completion.
-
-        env is a list of environment variables, e.g. ["X=Y", "ZY=Q"]
-        """
-
+    def _prepare_container(self, command: str, env, container_path,
+                           local_path):
         env = env or ["RUST_BACKTRACE=1", "RUST_LOG=redbackup=debug"]
         LOG.debug(f'Running command {command} on client {self.name}')
         container = self.docker.containers.create(
@@ -114,9 +123,21 @@ class Client:
             name=self.name,
             hostname=self.name,
             environment=env)
+        self.network.connect(container)
+        Client._copy_into_container(container, container_path, local_path)
+        return container
+
+    @contextmanager
+    def _run_sync(self, command: str, env=None, container_path=None,
+                  local_path=None):
+        """
+        Runs the given command on the client and blocks until completion.
+
+        env is a list of environment variables, e.g. ["X=Y", "ZY=Q"]
+        """
+        container = self._prepare_container(
+            command, env, container_path, local_path)
         try:
-            self.network.connect(container)
-            Client._copy_into_container(container, container_path, local_path)
             LOG.debug(f'Starting client container {self.name}...')
             container.start()
             LOG.debug(
@@ -179,10 +200,10 @@ def are_dir_trees_equal(dir1, dir2):
     @param dir1: First directory path
     @param dir2: Second directory path
 
-    @return: True if the directory trees are the same and 
-        there were no errors while accessing the directories or files, 
+    @return: True if the directory trees are the same and
+        there were no errors while accessing the directories or files,
         False otherwise.
-    Source: https://stackoverflow.com/questions/4187564/recursive-dircmp-compare-two-directories-to-ensure-they-have-the-same-files-and
+    Source: https://stackoverflow.com/questions/4187564/\recursive-dircmp-compare-two-directories-to-ensure-they-have-the-same-files-and
    """
 
     dirs_cmp = filecmp.dircmp(dir1, dir2)
