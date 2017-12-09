@@ -19,18 +19,22 @@ quick_error! {
     pub enum DatabaseError {
         PoolInitializationError(err: r2d2::InitializationError) {
             from()
+            display("Pool initialization failed ({})", err)
             cause(err)
         }
         ConnectionError(err: r2d2::GetTimeout) {
             from()
+            display("Connection error ({})", err)
             cause(err)
         }
         QueryError(err: diesel::result::Error) {
             from()
+            display("Query Error ({})", err)
             cause(err)
         }
         MigrationError(err: diesel::migrations::RunMigrationsError) {
             from()
+            display("Migration error ({})", err)
             cause(err)
         }
     }
