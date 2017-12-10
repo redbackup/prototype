@@ -13,6 +13,7 @@ fn main() {
 /// Prepares a SQLITE database file with migrations to allow schema inference.during build.
 ///
 /// This satisfies the DATABASE_FILE env required by `src/chunk_table/schema.rs`
+/// For more information on inference, please take a look at the `diesel` crate documentation
 fn prepare_inference_database() {
     // Requires OUT_DIR set by the cargo build environment. It contains the build target directory.
     let database_file = format!("{}/database-node.db", env::var("OUT_DIR").unwrap());

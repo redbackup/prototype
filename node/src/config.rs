@@ -8,7 +8,7 @@ use std;
 
 use dns_lookup::lookup_host;
 
-
+/// Configuration of a node
 pub struct Config {
     pub addr: SocketAddr,
     pub storage_location: PathBuf,
@@ -58,6 +58,7 @@ impl Config {
 
         let db_location = db_location.to_owned();
 
+        // Collect and parse all specified node hostnames
         let mut known_nodes = Vec::new();
         for known_node in known_nodes_strs {
             let mut split: Vec<_> = known_node.rsplitn(2, ':').collect();
@@ -85,6 +86,7 @@ impl Config {
                 )
             }
 
+            // Get port of node or use the default, 8080
             let port: u16 = if let Some(portstr) = split.get(1) {
                 portstr.parse().map_err(|e| ParseError::InvalidPort(e))?
             } else {

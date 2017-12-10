@@ -37,6 +37,9 @@ impl Into<ChunkElement> for Chunk {
     }
 }
 
+/// Convert a Chunk to a ChunkContent Element.
+/// This is no `From` or `Into` implementation, as it requires additional informatormation from
+/// the storage and may fail.
 pub fn chunk_to_chunk_contents_element(
     chunk: Chunk,
     storage: &Storage,

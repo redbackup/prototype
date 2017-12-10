@@ -19,6 +19,7 @@ use self::integrity_check::IntegrityCheckTask;
 use self::replication::ReplicateTask;
 
 
+/// Setup regularly scheduled tasks in the event loop.
 pub fn setup(
     handle: Handle,
     chunk_table: ChunkTable,
@@ -39,6 +40,7 @@ pub fn setup(
 }
 
 
+/// Common structure, that a regular task must implement.
 trait Task {
     fn exec(&self) -> CpuFuture<(), ()>;
     fn name(&self) -> &'static str;

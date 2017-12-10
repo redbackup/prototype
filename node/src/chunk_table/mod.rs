@@ -40,6 +40,7 @@ quick_error! {
     }
 }
 
+/// Represents the chunk table, where the node persists information about chunks it holds.
 pub struct ChunkTable {
     db_pool: Pool<ConnectionManager<SqliteConnection>>,
 }
@@ -84,7 +85,6 @@ impl ChunkTable {
         Ok(conn)
     }
 
-    #[allow(dead_code)]
     pub fn get_chunk(&self, chunk_identifier: &str) -> Result<Chunk, DatabaseError> {
         let conn = self.get_db_connection()?;
         chunks::dsl::chunks
@@ -110,6 +110,7 @@ impl ChunkTable {
             .map_err(|e| DatabaseError::from(e))
     }
 
+    /// Update a chunk in the database (postpone the expiration date if appropriate).
     pub fn update_chunk(&self, chunky: &Chunk) -> Result<Chunk, DatabaseError> {
         let conn = self.get_db_connection()?;
         trace!("Update chunk {} as transaction", chunky.chunk_identifier);
@@ -118,6 +119,7 @@ impl ChunkTable {
                 &*conn,
             )?;
 
+            // Evaluate if there are changes that require a update query
             let mut changed = false;
             let mut expiration_date = db_chunk.expiration_date;
 
@@ -142,6 +144,7 @@ impl ChunkTable {
                     ))
                     .execute(&*conn)?;
 
+                // Get updated chunk, as SQLite does not support RETURNING clauses.
                 chunks::dsl::chunks
                     .find(&chunky.chunk_identifier)
                     .first::<Chunk>(&*conn)
@@ -151,6 +154,8 @@ impl ChunkTable {
             }
         })
     }
+
+    /// Update multiple chunks and return them as stored in the database.
     pub fn get_and_update_chunks(&self, chunks: Vec<Chunk>) -> Result<Vec<Chunk>, DatabaseError> {
         let mut results: Vec<Chunk> = Vec::new();
         for chunk in chunks {

@@ -16,6 +16,7 @@ use chunk_table::{Chunk, ChunkTable, DatabaseError};
 use super::Task;
 use super::super::utils;
 
+/// Task that does the actual replication between the nodes.
 pub struct ReplicateTask {
     pool: CpuPool,
     storage: Storage,
@@ -85,6 +86,8 @@ quick_error!{
 }
 
 
+/// Execute the actual repliction process.
+/// Currently, this sends chunks to all other available nodes.
 fn replicate(
     chunk_table: ChunkTable,
     storage: Storage,
