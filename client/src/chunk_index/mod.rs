@@ -32,6 +32,7 @@ quick_error! {
     }
 }
 
+/// Client chunk index, to store the local folder and file structures and hashes:
 #[derive(Clone)]
 pub struct ChunkIndex {
     db_pool: Pool<ConnectionManager<SqliteConnection>>,
@@ -76,6 +77,7 @@ impl ChunkIndex {
             .into(self::folders::table)
             .execute(&*conn)?;
 
+        // sqlite does not support RETURNING clauses, so query the new folder from database
         let query_folder_name = dsl::folders.filter(dsl::name.eq(&new_folder.name));
         let folder;
         if let Some(id) = new_folder.parent_folder {
@@ -97,6 +99,7 @@ impl ChunkIndex {
             &*conn,
         )?;
 
+        // sqlite does not support RETURNING clauses, so query the new file from database
         let file = dsl::files
             .filter(dsl::name.eq(&new_file.name))
             .filter(dsl::folder.eq(new_file.folder))
@@ -111,6 +114,7 @@ impl ChunkIndex {
             .into(self::chunks::table)
             .execute(&*conn)?;
 
+        // sqlite does not support RETURNING clauses, so query the new chunks from database
         let chunk = dsl::chunks
             .filter(dsl::chunk_identifier.eq(&new_chunk.chunk_identifier))
             .filter(dsl::file.eq(new_chunk.file))
@@ -125,6 +129,7 @@ impl ChunkIndex {
         )
     }
 
+    /// Get the relative path of a file by id.
     pub fn get_file_path(&self, file_id: i32) -> Result<PathBuf, DatabaseError> {
         use self::folders::dsl;
         use self::files;
@@ -139,6 +144,7 @@ impl ChunkIndex {
             let mut path_vec = vec![file.name.clone()];
             let mut path = PathBuf::new();
 
+            // query parent folders recursively
             loop {
                 let folder = dsl::folders.filter(dsl::id.eq(parent_id)).first::<Folder>(
                     &*conn,
@@ -158,6 +164,7 @@ impl ChunkIndex {
         })
     }
 
+    /// Get the subfolder of Some folder, or all root folders with None.
     pub fn get_folders_by_parent(
         &self,
         parent_folder: Option<i32>,

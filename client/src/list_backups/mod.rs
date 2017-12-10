@@ -13,6 +13,8 @@ use redbackup_protocol::message::*;
 
 use super::config::Config;
 
+
+/// Crate context to list all backups on a node.
 pub struct ListBackupsContext {
     config: Config,
     event_loop: Core,
@@ -31,6 +33,7 @@ impl ListBackupsContext {
         })
     }
 
+    /// Get a List of backup (chunk) identifiers and the expiration date.
     pub fn run(&mut self) -> Result<Vec<(String, DateTime<Utc>)>, ListBackupsError> {
         info!("Request root handles from node at {}", self.config.addr);
         Ok(
@@ -41,6 +44,7 @@ impl ListBackupsContext {
         )
     }
 
+    /// Request root handles from the node.
     fn get_root_handles(&mut self) -> Result<Vec<ChunkContentElement>, ListBackupsError> {
         self.message_node_sync(GetRootHandles::new()).map(|res| {
             match res.body {

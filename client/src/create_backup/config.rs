@@ -7,6 +7,7 @@ use glob::{Pattern, PatternError};
 
 use chrono::{DateTime, Utc, NaiveDateTime};
 
+/// Parameters that are required for a backup
 pub struct CreateBackupConfig {
     pub backup_dir: PathBuf,
     pub expiration_date: DateTime<Utc>,
@@ -79,6 +80,7 @@ impl CreateBackupConfig {
         })
     }
 
+    /// Read and parse exclude patterns from a file, specified by path
     fn parse_exclude_from(file: &PathBuf) -> Result<Vec<Pattern>, CreateBackupConfigError> {
         let file = BufReader::new(File::open(file)?);
         let mut patterns = Vec::new();

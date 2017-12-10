@@ -5,6 +5,8 @@ use std::io::Error;
 use sha2::{Sha256, Digest};
 use std::io::Read;
 
+
+/// Read the content of file with the specified path to a buffer.
 pub fn read_file_content(path: &PathBuf) -> Result<Vec<u8>, Error> {
     debug!("Read file content {:?}", path);
     let mut fhandle = File::open(path)?;
@@ -14,6 +16,7 @@ pub fn read_file_content(path: &PathBuf) -> Result<Vec<u8>, Error> {
     Ok(buf)
 }
 
+/// Get the hash a file by path.
 pub fn file_hash(file_path: &PathBuf) -> Result<String, Error> {
     debug!("Calculate hash of file {:?}", file_path);
     let mut file_pointer = File::open(&file_path)?;

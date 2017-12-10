@@ -23,6 +23,7 @@ use super::Progress;
 use super::config::Config;
 use super::chunk_index::ChunkIndex;
 
+/// Implementation of the restore process
 pub struct RestoreBackupContext {
     config: Config,
     restore_config: RestoreBackupConfig,
@@ -66,7 +67,7 @@ impl RestoreBackupContext {
         Ok(())
     }
 
-
+    /// Reconstruct the chunk index of the specified backup
     fn restore_chunk_index(&mut self) -> Result<ChunkIndex, RestoreBackupError> {
         let chunk_identifier = &self.restore_config.backup_id;
         debug!(
@@ -97,6 +98,7 @@ impl RestoreBackupContext {
         Ok(ChunkIndex::new(path, now)?)
     }
 
+    /// Recreate the whole folder structure of the backup recursively
     fn restore_folder_structure(
         root_folder: &PathBuf,
         chunk_index: &ChunkIndex,
@@ -119,6 +121,7 @@ impl RestoreBackupContext {
         Ok(())
     }
 
+    /// Reassemble files from all chunks in the chunk index
     fn restore_chunks(&mut self, chunk_index: &ChunkIndex) -> Result<(), RestoreBackupError> {
         let chunks = chunk_index.get_all_chunks()?;
         let mut progress = Progress::new(self.progress_sender.clone(), chunks.len());
@@ -137,6 +140,7 @@ impl RestoreBackupContext {
         Ok(())
     }
 
+    /// Query a chunk from the node by chunk identifier
     fn request_chunk(
         &mut self,
         chunk_identifier: String,

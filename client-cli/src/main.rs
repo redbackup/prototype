@@ -187,6 +187,7 @@ fn main() {
     }
 }
 
+/// Handle unexpected Error Results
 fn handle_error<T: std::error::Error>(err: T) {
     eprintln!("Huston, we have a problem! An unexpected error occured.");
     eprintln!("Description: {}", err.description());

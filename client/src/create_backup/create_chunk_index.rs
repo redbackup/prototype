@@ -28,6 +28,7 @@ quick_error! {
     }
 }
 
+/// Creates a chunk index from a specified path.
 pub struct CreateChunkIndex {
     chunk_index: ChunkIndex,
     path: PathBuf,
@@ -37,6 +38,7 @@ pub struct CreateChunkIndex {
 }
 
 impl CreateChunkIndex {
+    /// Create a chunk index from a specified path recursively
     pub fn new(
         chunk_index: &ChunkIndex,
         path: &PathBuf,
@@ -62,6 +64,7 @@ impl CreateChunkIndex {
         result
     }
 
+    /// The actual recursive building process. This function is called by `Self::new(...)`.
     fn build(self) -> Result<(), BuilderError> {
         debug!("Read content of path {:?}", self.path);
         for entry in self.path.read_dir()? {
@@ -107,6 +110,7 @@ impl CreateChunkIndex {
         Ok(())
     }
 
+    /// Read metadata of a file and add it to the chunk index.
     fn add_file(&self, file_entry: DirEntry) -> Result<File, BuilderError> {
         let metadata = file_entry.metadata()?;
         let modified = metadata.modified()?;
@@ -131,6 +135,7 @@ impl CreateChunkIndex {
         Ok(file)
     }
 
+    /// Read metadata of a folder and add it to the chunk index.
     fn add_folder(&self, folder_path: &PathBuf) -> Result<Folder, BuilderError> {
         let name = OsString::from(folder_path.file_name().ok_or(io::Error::new(
             io::ErrorKind::NotFound,

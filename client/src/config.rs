@@ -7,6 +7,7 @@ use std;
 
 use dns_lookup::lookup_host;
 
+/// Shared configuration by the backup client.
 pub struct Config {
     pub addr: SocketAddr,
     pub chunk_index_storage: PathBuf,

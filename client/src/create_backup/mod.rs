@@ -24,6 +24,7 @@ use super::chunk_index::{ChunkIndex, DatabaseError};
 use super::chunk_index::schema::{Chunk, File, Folder, NewChunk, NewFile, NewFolder};
 use self::create_chunk_index::CreateChunkIndex;
 
+/// The actual backup process
 pub struct CreateBackupContext {
     config: Config,
     create_backup_config: CreateBackupConfig,
@@ -34,7 +35,7 @@ pub struct CreateBackupContext {
 }
 
 impl CreateBackupContext {
-    /// Create initial structures for a new backup.
+    /// Create initial structures for a new backup (i.e. chunk index).
     pub fn new(
         config: Config,
         create_backup_config: CreateBackupConfig,
@@ -149,7 +150,7 @@ impl CreateBackupContext {
         })?
     }
 
-    /// Remove items in vector `reduction` from vector `elements` by the chun_identifier.
+    /// Remove items in vector `reduction` from vector `elements` by the chunk_identifier.
     fn reduce_by_remaining_chunks(elements: &mut Vec<Chunk>, reduction: &Vec<ChunkElement>) {
         elements.retain(|e| {
             reduction
