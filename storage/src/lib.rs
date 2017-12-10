@@ -37,6 +37,8 @@ quick_error! {
     }
 }
 
+/// The data storage, which abstracts the underlying file structure
+/// This implementation simply stores all files in a directory, with the hash as file name.
 #[derive(Debug)]
 pub struct Storage {
     location: PathBuf,
@@ -61,6 +63,7 @@ impl Storage {
         Ok(Storage { location: location })
     }
 
+    /// Persist a chunk with identifier and data to disk.
     pub fn persist(&self, identifier: &str, data: &Vec<u8>) -> Result<(), StorageError> {
         let path = self.filename_for_identifier(identifier);
         debug!("Persist chunk with identifer {} at {:?}", identifier, path);
@@ -73,6 +76,7 @@ impl Storage {
         Ok(())
     }
 
+    /// Get the chunk content of specified chunk identifier from storage.
     pub fn get(&self, identifier: &str) -> Result<Vec<u8>, StorageError> {
         let path = self.filename_for_identifier(identifier);
         debug!(
@@ -89,6 +93,7 @@ impl Storage {
         Ok(buf)
     }
 
+    /// Remove a chunk from the storage
     pub fn delete(&self, identifier: &str) -> Result<(), StorageError> {
         let path = self.filename_for_identifier(identifier);
         debug!(
@@ -102,6 +107,7 @@ impl Storage {
         std::fs::remove_file(path).map_err(|e| StorageError::from(e))
     }
 
+    /// Verify, that hashed chunk content and identifier are identical.
     pub fn verify(&self, identifier: &str) -> Result<(), StorageError> {
         let path = self.filename_for_identifier(identifier);
         debug!(

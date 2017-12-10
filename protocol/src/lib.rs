@@ -1,3 +1,8 @@
+//! # The redbackup protocol implementation.
+//!
+//! This is the implementation of the standardised redbackup protocol,
+//! with small adjustments to fit the prototypes reduced feature set.
+
 extern crate bytes;
 extern crate chrono;
 extern crate tokio_core;
@@ -56,6 +61,10 @@ impl<T: AsyncRead + AsyncWrite + 'static> ClientProto<T> for RedClientProto {
     }
 }
 
+/// The RedCodec struct implements both the encoder and decoder for network messages,
+/// that are exchanged between client and node, and between nodes.
+///
+/// The decoder is implemented according to the Tokio traits `Decoder`and `Encoder`.
 pub struct RedCodec;
 
 impl Decoder for RedCodec {
@@ -102,11 +111,13 @@ impl Encoder for RedCodec {
     }
 }
 
+/// The actual deserialising call
 pub fn decode_message(buf: &mut BytesMut) -> io::Result<Option<Message>> {
     let mut de = Deserializer::new(&buf[..]);
     Deserialize::deserialize(&mut de).map_err(|err| io::Error::new(io::ErrorKind::Other, err))
 }
 
+/// The actual serialising call
 pub fn encode_message(msg: Message, buf: &mut BytesMut) -> io::Result<()> {
     let mut vec = Vec::new();
     msg.serialize(&mut Serializer::new(&mut vec))

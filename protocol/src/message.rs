@@ -1,13 +1,17 @@
+//! Implementations of the messages and message types, according to the speicifcation.
+//! Small adjustments were made, to fit the reduced prototype feature set.
+
 use chrono::{DateTime, Utc};
 use serde_bytes;
 
+/// A message, that is sent over the network
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Message {
     pub timestamp: DateTime<Utc>,
     pub body: MessageKind,
 }
 
-
+/// The kind of a message
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub enum MessageKind {
     GetDesignation(GetDesignation),
@@ -120,6 +124,7 @@ impl ReturnChunkStates {
     }
 }
 
+/// A chunk content element according to specification.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct ChunkContentElement {
     #[serde(with = "serde_bytes")]
