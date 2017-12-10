@@ -10,20 +10,6 @@ fn add_chunk() {
 }
 
 #[test]
-fn remove_chunk() {
-    let chunk_table = ChunkTableUtils::chunk_table_for_test("remove_chunk");
-    let expected = ChunkTableUtils::insert_and_verify(&chunk_table, ExampleChunk::one());
-
-    let removed = chunk_table
-        .remove_chunk(&expected.chunk_identifier)
-        .unwrap();
-
-    assert_eq!(removed, 1);
-
-    assert!(chunk_table.get_chunk(&expected.chunk_identifier).is_err());
-}
-
-#[test]
 fn get_chunk() {
     let chunk_table = ChunkTableUtils::chunk_table_for_test("get_chunk");
     let expected = ChunkTableUtils::insert_and_verify(&chunk_table, ExampleChunk::one());

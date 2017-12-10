@@ -101,14 +101,6 @@ impl ChunkTable {
             .map_err(|e| DatabaseError::from(e))
     }
 
-    #[allow(dead_code)]
-    pub fn remove_chunk(&self, chunk_identifier: &str) -> Result<usize, DatabaseError> {
-        let conn = self.get_db_connection()?;
-        diesel::delete(chunks::dsl::chunks.find(chunk_identifier))
-            .execute(&*conn)
-            .map_err(|e| DatabaseError::from(e))
-    }
-
     pub fn load_random_chunks(&self, number_of_chunks: i64) -> Result<Vec<Chunk>, DatabaseError> {
         let conn = self.get_db_connection()?;
         chunks::dsl::chunks
