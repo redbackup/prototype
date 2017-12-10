@@ -65,9 +65,7 @@ impl InvalidRequest {
     pub fn new(reason: &str) -> Message {
         Message {
             timestamp: Utc::now(),
-            body: MessageKind::InvalidRequest(InvalidRequest {
-                reason: reason.into(),
-            }),
+            body: MessageKind::InvalidRequest(InvalidRequest { reason: reason.into() }),
         }
     }
 }
@@ -81,9 +79,7 @@ impl InternalError {
     pub fn new(reason: &str) -> Message {
         Message {
             timestamp: Utc::now(),
-            body: MessageKind::InternalError(InternalError {
-                reason: reason.into(),
-            }),
+            body: MessageKind::InternalError(InternalError { reason: reason.into() }),
         }
     }
 }
@@ -126,7 +122,8 @@ impl ReturnChunkStates {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct ChunkContentElement {
-    #[serde(with = "serde_bytes")] pub chunk_content: Vec<u8>,
+    #[serde(with = "serde_bytes")]
+    pub chunk_content: Vec<u8>,
     pub chunk_identifier: String,
     pub expiration_date: DateTime<Utc>,
     pub root_handle: bool,

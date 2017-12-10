@@ -17,11 +17,14 @@ fn prepare_inference_database() {
     // Requires OUT_DIR env set by the cargo build environment. It contains the build target directory.
     let database_file = format!("{}/database-client.db", env::var("OUT_DIR").unwrap());
 
-    let connection = SqliteConnection::establish(&database_file)
-        .expect(&format!("Build Database Error: Connecting to {} failed", database_file));
+    let connection = SqliteConnection::establish(&database_file).expect(&format!(
+        "Build Database Error: Connecting to {} failed",
+        database_file
+    ));
 
-    migrations::run_pending_migrations(&connection)
-        .expect("Build Database Error: Migrations unsuccessful");
+    migrations::run_pending_migrations(&connection).expect(
+        "Build Database Error: Migrations unsuccessful",
+    );
 
     println!("cargo:rustc-env=DATABASE_FILE={}", database_file);
 

@@ -56,12 +56,12 @@ fn load_random_chunks() {
     let loaded = chunk_table.load_random_chunks(2).unwrap();
     assert_eq!(2, loaded.len());
     assert!(
-        loaded[0] == ExampleChunk::one() || loaded[0] == ExampleChunk::two()
-            || loaded[0] == ExampleChunk::three()
+        loaded[0] == ExampleChunk::one() || loaded[0] == ExampleChunk::two() ||
+            loaded[0] == ExampleChunk::three()
     );
     assert!(
-        loaded[1] == ExampleChunk::one() || loaded[1] == ExampleChunk::two()
-            || loaded[1] == ExampleChunk::three()
+        loaded[1] == ExampleChunk::one() || loaded[1] == ExampleChunk::two() ||
+            loaded[1] == ExampleChunk::three()
     );
     assert!(loaded[0] != loaded[1]);
     let loaded = chunk_table.load_random_chunks(12).unwrap();
@@ -80,8 +80,8 @@ fn update_chunk_older_date() {
         chunk
     };
 
-    let updated = chunk_table
-        .update_chunk(&second)
-        .expect("Could not remove chunk");
+    let updated = chunk_table.update_chunk(&second).expect(
+        "Could not remove chunk",
+    );
     assert_eq!(original, updated);
 }

@@ -45,9 +45,10 @@ impl CreateBackupConfig {
             ));
         }
 
-        let expiration_date = NaiveDateTime::parse_from_str(expiration_date, "%Y-%m-%dT%H:%M").map_err(
-            |_| CreateBackupConfigError::InvalidDateFormat(expiration_date.into()),
-        )?;
+        let expiration_date = NaiveDateTime::parse_from_str(expiration_date, "%Y-%m-%dT%H:%M")
+            .map_err(|_| {
+                CreateBackupConfigError::InvalidDateFormat(expiration_date.into())
+            })?;
         let expiration_date = DateTime::from_utc(expiration_date, Utc);
 
         if expiration_date <= Utc::now() {
@@ -61,7 +62,10 @@ impl CreateBackupConfig {
             let exclude_from_path = PathBuf::from(exclude_from);
             if !exclude_from_path.is_file() {
                 return Err(CreateBackupConfigError::ExcludeFromFileReadError(
-                    io::Error::new(io::ErrorKind::NotFound, "Exclude from file not found")
+                    io::Error::new(
+                        io::ErrorKind::NotFound,
+                        "Exclude from file not found",
+                    ),
                 ));
             }
 
@@ -87,5 +91,4 @@ impl CreateBackupConfig {
 
         Ok(patterns)
     }
-
 }

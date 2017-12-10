@@ -7,8 +7,8 @@ fn read_file_content() {
     path.push("documents/redbackup.txt");
     let expected_content = "redbackup".to_string().into_bytes();
 
-    let content = create_utils::read_file_content(&path)
-        .expect("read_file_content returned an Error");
+    let content =
+        create_utils::read_file_content(&path).expect("read_file_content returned an Error");
     assert_eq!(content, expected_content);
 }
 
@@ -19,7 +19,6 @@ fn file_hash() {
     let expected_checksum = "7fcaddc8772aaa616f43361c217c23d308e933465b2099d00ba1418fec1839f2";
 
 
-    let hash = create_utils::file_hash(&path)
-        .expect("file_hash returned an Error");
+    let hash = create_utils::file_hash(&path).expect("file_hash returned an Error");
     assert_eq!(hash, expected_checksum);
 }

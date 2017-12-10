@@ -37,7 +37,10 @@ impl Into<ChunkElement> for Chunk {
     }
 }
 
-pub fn chunk_to_chunk_contents_element(chunk: Chunk, storage: &Storage) -> Option<ChunkContentElement> {
+pub fn chunk_to_chunk_contents_element(
+    chunk: Chunk,
+    storage: &Storage,
+) -> Option<ChunkContentElement> {
     match storage.get(&chunk.chunk_identifier) {
         Err(err) => {
             warn!("Failed to load chunk: {:?}", err.description());

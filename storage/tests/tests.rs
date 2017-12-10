@@ -13,7 +13,9 @@ fn _get_test_target_path(test_name: &str) -> PathBuf {
 fn _read_data(filename: &str) -> Vec<u8> {
     let mut f = File::open(filename).unwrap();
     let mut buf = Vec::new();
-    f.read_to_end(&mut buf).expect("failed to read file to the end...");
+    f.read_to_end(&mut buf).expect(
+        "failed to read file to the end...",
+    );
     buf
 }
 
@@ -66,14 +68,26 @@ fn ensure_persisting_existing_chunk_fails() {
     let identifier = "c1fcd4dd4dc0ee9208d7b9c6608b91bde8eee91b09bc5b4928b9371d5bdab16d";
     storage.persist(identifier, &expected_data).unwrap();
     let err = storage.persist(identifier, &expected_data).unwrap_err();
-    assert_eq!(format!("{}", err), format!("Can not persist already existing chunk with identifier {}", identifier));
+    assert_eq!(
+        format!("{}", err),
+        format!(
+            "Can not persist already existing chunk with identifier {}",
+            identifier
+        )
+    );
 }
 #[test]
 fn ensure_deleting_nonexisting_chunk_fails() {
     let storage = _setup_empty_storage("ensure_deleting_nonexisting_chunk_fails");
     let identifier = "c1fcd4dd4dc0ee9208d7b9c6608b91bde8eee91b09bc5b4928b9371d5bdab16d";
     let err = storage.delete(identifier).unwrap_err();
-    assert_eq!(format!("{}", err), format!("Can not delete non-existing chunk with identifier {}", identifier));
+    assert_eq!(
+        format!("{}", err),
+        format!(
+            "Can not delete non-existing chunk with identifier {}",
+            identifier
+        )
+    );
 }
 
 #[test]
@@ -81,7 +95,13 @@ fn ensure_get_nonexisting_chunk_fails() {
     let storage = _setup_empty_storage("ensure_get_nonexisting_chunk_fails");
     let identifier = "c1fcd4dd4dc0ee9208d7b9c6608b91bde8eee91b09bc5b4928b9371d5bdab16d";
     let err = storage.get(identifier).unwrap_err();
-    assert_eq!(format!("{}", err), format!("The chunk with the identifier {} is not persisted", identifier));
+    assert_eq!(
+        format!("{}", err),
+        format!(
+            "The chunk with the identifier {} is not persisted",
+            identifier
+        )
+    );
 }
 
 #[test]
@@ -92,5 +112,12 @@ fn ensure_corrupted_chunk_is_detected() {
     let expected_data = _read_data("tests/data/lorem.txt");
     storage.persist(identifier, &expected_data).unwrap();
     let err = storage.verify(identifier).unwrap_err();
-    assert_eq!(format!("{}", err), format!("The chunk with identifier {} produces another digest than its identifier (actual: {})", identifier, actual_identifier));
+    assert_eq!(
+        format!("{}", err),
+        format!(
+            "The chunk with identifier {} produces another digest than its identifier (actual: {})",
+            identifier,
+            actual_identifier
+        )
+    );
 }

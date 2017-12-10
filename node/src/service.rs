@@ -99,12 +99,13 @@ impl NodeService {
                         &chunk_content.chunk_identifier
                     );
                     results.push(chunk);
-                    continue
+                    continue;
                 }
                 if let Err(err) = storage.persist(
                     &chunk_content.chunk_identifier,
                     &chunk_content.chunk_content,
-                ) {
+                )
+                {
                     error!("Failed to persist new chunk: {}", err);
                     continue;
                 }

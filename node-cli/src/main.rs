@@ -23,16 +23,12 @@ fn main() {
                     "ip address and port (<ip-address>:<port>) of other known nodes in the network",
                 ),
         )
-        .arg(
-            Arg::with_name("ip")
-                .help("IP to bind")
-                .default_value("0.0.0.0"),
-        )
-        .arg(
-            Arg::with_name("port")
-                .help("IP to bind")
-                .default_value("8080"),
-        )
+        .arg(Arg::with_name("ip").help("IP to bind").default_value(
+            "0.0.0.0",
+        ))
+        .arg(Arg::with_name("port").help("IP to bind").default_value(
+            "8080",
+        ))
         .arg(
             Arg::with_name("storage-dir")
                 .help("path to the storage directory")

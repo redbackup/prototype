@@ -33,7 +33,7 @@ impl Progress {
         let percentage = self.completed * 100 / self.total;
         format!(
             "{:>3}% completed (ETR: {} seconds)",
-            percentage, 
+            percentage,
             estimate.num_seconds() - elapsed.num_seconds()
         ).into()
     }

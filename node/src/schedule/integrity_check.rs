@@ -64,7 +64,10 @@ fn check_integrity(chunk_table: ChunkTable, storage: Storage) -> Result<(), Inte
     let chunks = chunk_table.load_random_chunks(5)?;
     for chunk in chunks {
         storage.verify(&chunk.chunk_identifier)?;
-        debug!("Integrity check for chunk {} successful", chunk.chunk_identifier);
+        debug!(
+            "Integrity check for chunk {} successful",
+            chunk.chunk_identifier
+        );
     }
     Ok(())
 }

@@ -67,7 +67,10 @@ impl CreateBackupContext {
 
     /// The backup process
     pub fn run(&mut self) -> Result<(), CreateError> {
-        info!("Create chunk index from {:?}", self.create_backup_config.backup_dir);
+        info!(
+            "Create chunk index from {:?}",
+            self.create_backup_config.backup_dir
+        );
         CreateChunkIndex::new(
             &self.chunk_index,
             &self.create_backup_config.backup_dir,
@@ -162,16 +165,17 @@ impl CreateBackupContext {
 
         info!("Sending PostChunks message for {}", chunk.chunk_identifier);
         let req = PostChunks::new(vec![chunk]);
-        let acknowledged_chunks: Vec<ChunkElement> = self.message_node_sync(req)
-            .map(|res| match res.body {
-                MessageKind::AcknowledgeChunks(body) => Some(body.chunks),
-                _ => None,
-            })?
-            .ok_or(CreateError::NodeCommunicationError)?;
+        let acknowledged_chunks: Vec<ChunkElement> =
+            self.message_node_sync(req)
+                .map(|res| match res.body {
+                    MessageKind::AcknowledgeChunks(body) => Some(body.chunks),
+                    _ => None,
+                })?
+                .ok_or(CreateError::NodeCommunicationError)?;
 
-        let acknowledged_chunk: &ChunkElement = acknowledged_chunks
-            .get(0)
-            .ok_or(CreateError::ChunkNotAcknowledged(chunk_identifier.clone()))?;
+        let acknowledged_chunk: &ChunkElement = acknowledged_chunks.get(0).ok_or(
+            CreateError::ChunkNotAcknowledged(chunk_identifier.clone()),
+        )?;
 
         if acknowledged_chunk.chunk_identifier == chunk_identifier {
             debug!(
@@ -209,9 +213,9 @@ impl CreateBackupContext {
         let future = TcpClient::new(RedClientProto)
             .connect(&self.config.addr, &self.handle.clone())
             .and_then(|client| client.call(message));
-        self.event_loop
-            .run(future)
-            .map_err(|e| CreateError::from(e))
+        self.event_loop.run(future).map_err(
+            |e| CreateError::from(e),
+        )
     }
 
 

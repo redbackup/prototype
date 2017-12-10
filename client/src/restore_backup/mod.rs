@@ -36,7 +36,7 @@ impl RestoreBackupContext {
     pub fn new(
         config: Config,
         restore_config: RestoreBackupConfig,
-        progress_sender : Sender<Progress>
+        progress_sender: Sender<Progress>,
     ) -> Result<Self, RestoreBackupError> {
         let event_loop = tokio_core::reactor::Core::new()?;
         let handle = event_loop.handle();
@@ -69,7 +69,11 @@ impl RestoreBackupContext {
 
     fn restore_chunk_index(&mut self) -> Result<ChunkIndex, RestoreBackupError> {
         let chunk_identifier = &self.restore_config.backup_id;
-        debug!("Request chunk index {} from node at {}", chunk_identifier, self.config.addr);
+        debug!(
+            "Request chunk index {} from node at {}",
+            chunk_identifier,
+            self.config.addr
+        );
         let message = GetChunks::new(vec![chunk_identifier.clone()]);
         let request = TcpClient::new(RedClientProto)
             .connect(&self.config.addr, &self.handle.clone())
@@ -98,7 +102,10 @@ impl RestoreBackupContext {
         chunk_index: &ChunkIndex,
         parent_folder_id: Option<i32>,
     ) -> Result<(), RestoreBackupError> {
-        debug!("Request folder by parent id (if any) {:?} from chunk index", parent_folder_id);
+        debug!(
+            "Request folder by parent id (if any) {:?} from chunk index",
+            parent_folder_id
+        );
         let folders = chunk_index.get_folders_by_parent(parent_folder_id)?;
         let path = root_folder;
 
@@ -124,7 +131,7 @@ impl RestoreBackupContext {
             path.push(chunk_index.get_file_path(chunk.file)?);
 
             utils::restore_file_content(&chunk_content.chunk_content.as_slice(), &path)?;
-            debug!("Restored chunk {} to {:?}",chunk.chunk_identifier, path);
+            debug!("Restored chunk {} to {:?}", chunk.chunk_identifier, path);
             progress.increment();
         }
         Ok(())

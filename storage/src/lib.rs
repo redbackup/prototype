@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
-use sha2::{Sha256,Digest};
+use sha2::{Sha256, Digest};
 
 quick_error! {
     #[derive(Debug)]
@@ -44,9 +44,7 @@ pub struct Storage {
 
 impl Clone for Storage {
     fn clone(&self) -> Self {
-        Self {
-            location: self.location.clone(),
-        }
+        Self { location: self.location.clone() }
     }
 }
 
@@ -77,7 +75,11 @@ impl Storage {
 
     pub fn get(&self, identifier: &str) -> Result<Vec<u8>, StorageError> {
         let path = self.filename_for_identifier(identifier);
-        debug!("Load contents for chunk with identifer {} at {:?}", identifier, path);
+        debug!(
+            "Load contents for chunk with identifer {} at {:?}",
+            identifier,
+            path
+        );
         if !path.exists() {
             return Err(StorageError::GetNonExistingChunk(identifier.into()));
         }
@@ -89,7 +91,11 @@ impl Storage {
 
     pub fn delete(&self, identifier: &str) -> Result<(), StorageError> {
         let path = self.filename_for_identifier(identifier);
-        debug!("Delete contents for chunk with identifer {} at {:?}", identifier, path);
+        debug!(
+            "Delete contents for chunk with identifer {} at {:?}",
+            identifier,
+            path
+        );
         if !path.exists() {
             return Err(StorageError::DeleteNonExistingChunk(identifier.into()));
         }
@@ -98,20 +104,32 @@ impl Storage {
 
     pub fn verify(&self, identifier: &str) -> Result<(), StorageError> {
         let path = self.filename_for_identifier(identifier);
-        debug!("Loading contents for chunk with identifer {} at {:?}", identifier, path);
+        debug!(
+            "Loading contents for chunk with identifer {} at {:?}",
+            identifier,
+            path
+        );
         if !path.exists() {
             return Err(StorageError::GetNonExistingChunk(identifier.into()));
         }
 
         let mut file_pointer = fs::File::open(path)?;
         let hash = Sha256::digest_reader(&mut file_pointer)?;
-        let actual_identifier: String = hash.iter()
-            .map(|e| format!("{:02x}", e))
-            .fold(String::new(), |mut acc, s: String| { acc.push_str(&s); acc });
+        let actual_identifier: String = hash.iter().map(|e| format!("{:02x}", e)).fold(
+            String::new(),
+            |mut acc,
+             s: String| {
+                acc.push_str(&s);
+                acc
+            },
+        );
 
 
         if actual_identifier != identifier {
-            return Err(StorageError::CorruptedChunk(identifier.into(), actual_identifier));
+            return Err(StorageError::CorruptedChunk(
+                identifier.into(),
+                actual_identifier,
+            ));
         }
         Ok(())
     }

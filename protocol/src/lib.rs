@@ -40,7 +40,7 @@ impl<T: AsyncRead + AsyncWrite + 'static> ServerProto<T> for RedServerProto {
     type BindTransport = io::Result<Framed<T, RedCodec>>;
 
     fn bind_transport(&self, io: T) -> io::Result<Framed<T, RedCodec>> {
-        Ok(io.framed(RedCodec{}))
+        Ok(io.framed(RedCodec {}))
     }
 }
 pub struct RedClientProto;
@@ -52,7 +52,7 @@ impl<T: AsyncRead + AsyncWrite + 'static> ClientProto<T> for RedClientProto {
     type BindTransport = io::Result<Framed<T, RedCodec>>;
 
     fn bind_transport(&self, io: T) -> io::Result<Framed<T, RedCodec>> {
-        Ok(io.framed(RedCodec{}))
+        Ok(io.framed(RedCodec {}))
     }
 }
 
@@ -65,15 +65,19 @@ impl Decoder for RedCodec {
     fn decode(&mut self, buf: &mut BytesMut) -> io::Result<Option<Message>> {
         let len = buf.len();
         if len == 0 {
-            return Ok(None)
+            return Ok(None);
         }
         debug!("Start decoding message");
         match decode_message(buf) {
             Err(e) => {
-                debug!("Failed decoding message (description: {}, cause: {:?})", e.description(), e.cause());
+                debug!(
+                    "Failed decoding message (description: {}, cause: {:?})",
+                    e.description(),
+                    e.cause()
+                );
                 trace!("Buffer content: {:?}", buf);
                 Ok(None)
-            },
+            }
             Ok(m) => {
                 if m.is_some() {
                     debug!("Message decoded successfully (to len {})", len);
@@ -100,14 +104,13 @@ impl Encoder for RedCodec {
 
 pub fn decode_message(buf: &mut BytesMut) -> io::Result<Option<Message>> {
     let mut de = Deserializer::new(&buf[..]);
-    Deserialize::deserialize(&mut de)
-        .map_err(|err| io::Error::new(io::ErrorKind::Other, err))
+    Deserialize::deserialize(&mut de).map_err(|err| io::Error::new(io::ErrorKind::Other, err))
 }
 
 pub fn encode_message(msg: Message, buf: &mut BytesMut) -> io::Result<()> {
     let mut vec = Vec::new();
     msg.serialize(&mut Serializer::new(&mut vec))
-        .map(move |_|buf.extend_from_slice(&vec))
+        .map(move |_| buf.extend_from_slice(&vec))
         .map_err(|err| io::Error::new(io::ErrorKind::Other, err))
 }
 
@@ -131,27 +134,91 @@ mod tests {
     #[test]
     fn test_encode_outgoing_message() {
         let mut buf = BytesMut::with_capacity(1024);
-        let msg =  Message {
+        let msg = Message {
             timestamp: Utc.ymd(2014, 11, 28).and_hms_milli(7, 8, 9, 10),
-            body: MessageKind::ReturnDesignation(ReturnDesignation {designation: false, }),
+            body: MessageKind::ReturnDesignation(ReturnDesignation { designation: false }),
         };
         encode_message(msg, &mut buf).unwrap();
         // Debug with: https://kawanet.github.io/msgpack-lite/
-        let expected = vec![146, 184, 50, 48, 49, 52, 45, 49, 49, 45, 50, 56, 84, 48, 55, 58, 48, 56, 58, 48, 57, 46, 48, 49, 48, 90, 146, 1, 145, 145, 194];
+        let expected = vec![
+            146,
+            184,
+            50,
+            48,
+            49,
+            52,
+            45,
+            49,
+            49,
+            45,
+            50,
+            56,
+            84,
+            48,
+            55,
+            58,
+            48,
+            56,
+            58,
+            48,
+            57,
+            46,
+            48,
+            49,
+            48,
+            90,
+            146,
+            1,
+            145,
+            145,
+            194,
+        ];
         assert_eq!(buf, expected[..]);
     }
 
-     #[test]
+    #[test]
     fn test_encode_incomming_message() {
         let mut buf = BytesMut::with_capacity(1024);
         // Debug with: https://kawanet.github.io/msgpack-lite/
-        let raw = vec![146, 184, 50, 48, 49, 52, 45, 49, 49, 45, 50, 56, 84, 48, 55, 58, 48, 56, 58, 48, 57, 46, 48, 49, 48, 90, 146, 1, 145, 145, 194];
+        let raw = vec![
+            146,
+            184,
+            50,
+            48,
+            49,
+            52,
+            45,
+            49,
+            49,
+            45,
+            50,
+            56,
+            84,
+            48,
+            55,
+            58,
+            48,
+            56,
+            58,
+            48,
+            57,
+            46,
+            48,
+            49,
+            48,
+            90,
+            146,
+            1,
+            145,
+            145,
+            194,
+        ];
         buf.put(raw);
 
         let actual = decode_message(&mut buf).unwrap().unwrap();
-        let expected =  Message {
+        let expected = Message {
             timestamp: Utc.ymd(2014, 11, 28).and_hms_milli(7, 8, 9, 10),
-            body: MessageKind::ReturnDesignation(ReturnDesignation {designation: false, }),
+            body: MessageKind::ReturnDesignation(ReturnDesignation { designation: false }),
         };
         assert_eq!(actual, expected);
     }
@@ -160,7 +227,41 @@ mod tests {
     fn test_encode_incomming_message_with_invalid_contents() {
         let mut buf = BytesMut::with_capacity(1024);
         // Debug with: https://kawanet.github.io/msgpack-lite/
-        let raw = vec![146, 184, 50, 48, 49, 52, 45, 49, 49, 45, 50, 56, 84, 48, 55, 58, 48, 56, 58, 48, 57, 46, 48, 49, 48, 90, 146, 205, 4, 215, 145, 145, 194];
+        let raw = vec![
+            146,
+            184,
+            50,
+            48,
+            49,
+            52,
+            45,
+            49,
+            49,
+            45,
+            50,
+            56,
+            84,
+            48,
+            55,
+            58,
+            48,
+            56,
+            58,
+            48,
+            57,
+            46,
+            48,
+            49,
+            48,
+            90,
+            146,
+            205,
+            4,
+            215,
+            145,
+            145,
+            194,
+        ];
         buf.put(raw);
 
         let err = decode_message(&mut buf).unwrap_err();

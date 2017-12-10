@@ -138,9 +138,11 @@ fn get_available_chunks_from_node(
     event_loop: &mut Core,
 ) -> Result<Vec<ChunkElement>, ReplicationError> {
     let req = GetChunkStates::new(chunk_elements);
-    message_node_sync(req, node_addr, event_loop).map(|res| match res.body {
-        MessageKind::ReturnChunkStates(body) => Ok(body.chunks),
-        _ => Err(ReplicationError::NodeCommunicationError),
+    message_node_sync(req, node_addr, event_loop).map(|res| {
+        match res.body {
+            MessageKind::ReturnChunkStates(body) => Ok(body.chunks),
+            _ => Err(ReplicationError::NodeCommunicationError),
+        }
     })?
 }
 
@@ -154,11 +156,12 @@ fn send_chunk_to_node(
     debug!("Sending missing chunk {} to node {}", node_addr, node_addr);
     let chunk = utils::chunk_to_chunk_contents_element(chunk, storage).unwrap();
     let req = PostChunks::new(vec![chunk]);
-    let acknowledged_chunks =
-        message_node_sync(req, node_addr, event_loop).map(|res| match res.body {
+    let acknowledged_chunks = message_node_sync(req, node_addr, event_loop).map(|res| {
+        match res.body {
             MessageKind::AcknowledgeChunks(body) => Ok(body.chunks),
             _ => Err(ReplicationError::NodeCommunicationError),
-        })??;
+        }
+    })??;
 
     let acknowledged_chunk: &ChunkElement = acknowledged_chunks.get(0).ok_or(
         ReplicationError::ChunkNotAcknowledged(chunk_identifier.clone()),
