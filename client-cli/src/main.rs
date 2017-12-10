@@ -157,7 +157,7 @@ fn main() {
                     println!("{} {}", backup.0, backup.1);
                 }
             }
-        }
+        },
 
         ("restore", Some(matches_restore)) => {
             let local_restore_dir = matches_restore.value_of("local-restore-dir").unwrap();
