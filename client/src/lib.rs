@@ -43,7 +43,8 @@ pub fn create_backup(
     create_backup_config: CreateBackupConfig,
     progress_sender: Sender<Progress>,
 ) -> Result<(), create_backup::CreateError> {
-    create_backup::CreateBackupContext::new(config, create_backup_config, progress_sender)?.run()
+    create_backup::CreateBackupContext::new(config, create_backup_config, progress_sender)?
+        .run()
 }
 
 pub fn list_backups(
@@ -57,5 +58,6 @@ pub fn restore_backup(
     restore_backup_config: RestoreBackupConfig,
     progress_sender: Sender<Progress>,
 ) -> Result<(), restore_backup::RestoreBackupError> {
-    restore_backup::RestoreBackupContext::new(config, restore_backup_config, progress_sender)?.run()
+    restore_backup::RestoreBackupContext::new(config, restore_backup_config, progress_sender)?
+        .run()
 }

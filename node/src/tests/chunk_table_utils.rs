@@ -13,9 +13,9 @@ impl ChunkTableUtils {
         ChunkTable::new(&database_url).unwrap()
     }
     pub fn insert_and_verify(chunk_table: &ChunkTable, chunk: Chunk) -> Chunk {
-        let added_chunk = chunk_table
-            .add_chunk(&chunk)
-            .expect("Chunk could not be added");
+        let added_chunk = chunk_table.add_chunk(&chunk).expect(
+            "Chunk could not be added",
+        );
         assert_eq!(chunk, added_chunk);
         chunk
     }

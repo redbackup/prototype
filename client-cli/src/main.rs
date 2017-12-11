@@ -9,7 +9,8 @@ use std::sync::mpsc;
 use std::sync::mpsc::{Sender, Receiver};
 
 use redbackup_client::config::{Config, ParseError};
-use redbackup_client::{CreateBackupConfig, CreateBackupConfigError, RestoreBackupConfig, RestoreBackupConfigError, Progress};
+use redbackup_client::{CreateBackupConfig, CreateBackupConfigError, RestoreBackupConfig,
+                       RestoreBackupConfigError, Progress};
 
 use clap::{App, Arg, SubCommand};
 
@@ -144,17 +145,20 @@ fn main() {
                 };
                 process::exit(1);
             });
-            
-            let progress_sender = initialize_progress_observer();
-            redbackup_client::create_backup(config, backup_cfg, progress_sender).unwrap_or_else(|err| handle_error(err));
-        },
 
-        ("list", _) => match redbackup_client::list_backups(config) {
-            Err(err)              => handle_error(err),
-            Ok(available_backups) => {
-                println!("{:64} Expiration Date", "Backup ID"); // Backup ID length is hash dependent.
-                for backup in available_backups {
-                    println!("{} {}", backup.0, backup.1);
+            let progress_sender = initialize_progress_observer();
+            redbackup_client::create_backup(config, backup_cfg, progress_sender)
+                .unwrap_or_else(|err| handle_error(err));
+        }
+
+        ("list", _) => {
+            match redbackup_client::list_backups(config) {
+                Err(err) => handle_error(err),
+                Ok(available_backups) => {
+                    println!("{:64} Expiration Date", "Backup ID"); // Backup ID length is hash dependent.
+                    for backup in available_backups {
+                        println!("{} {}", backup.0, backup.1);
+                    }
                 }
             }
         }
@@ -162,25 +166,28 @@ fn main() {
         ("restore", Some(matches_restore)) => {
             let local_restore_dir = matches_restore.value_of("local-restore-dir").unwrap();
             let backup_id = matches_restore.value_of("backup-id").unwrap();
-            let restore_cfg = RestoreBackupConfig::new(backup_id, local_restore_dir).unwrap_or_else(|err| {
-                match err {
-                    RestoreBackupConfigError::NonExistingDirectory(err) => {
-                        eprintln!("The given directory '{}' does not exist", err)
-                    }
-                    RestoreBackupConfigError::InvalidBackupId(err) => {
-                        eprintln!("The given backup ID '{}' is invalid", err)
-                    },
-                };
-                process::exit(1);
-            });
+            let restore_cfg = RestoreBackupConfig::new(backup_id, local_restore_dir)
+                .unwrap_or_else(|err| {
+                    match err {
+                        RestoreBackupConfigError::NonExistingDirectory(err) => {
+                            eprintln!("The given directory '{}' does not exist", err)
+                        }
+                        RestoreBackupConfigError::InvalidBackupId(err) => {
+                            eprintln!("The given backup ID '{}' is invalid", err)
+                        }
+                    };
+                    process::exit(1);
+                });
             let progress_sender = initialize_progress_observer();
-            redbackup_client::restore_backup(config, restore_cfg, progress_sender).unwrap_or_else(|err| handle_error(err));
-        },
+            redbackup_client::restore_backup(config, restore_cfg, progress_sender)
+                .unwrap_or_else(|err| handle_error(err));
+        }
 
         (&_, _) => app.print_help().expect("Could not get help options"),
     }
 }
 
+/// Handle unexpected Error Results
 fn handle_error<T: std::error::Error>(err: T) {
     eprintln!("Huston, we have a problem! An unexpected error occured.");
     eprintln!("Description: {}", err.description());
@@ -190,12 +197,10 @@ fn handle_error<T: std::error::Error>(err: T) {
 
 fn initialize_progress_observer() -> Sender<Progress> {
     let (tx, rx): (Sender<Progress>, Receiver<_>) = mpsc::channel();
-    thread::spawn(move || {
-        loop {
-            match rx.recv() {
-                Ok(msg) => println!("{}", msg.status_msg()),
-                Err(_) => break
-            }
+    thread::spawn(move || loop {
+        match rx.recv() {
+            Ok(msg) => println!("{}", msg.status_msg()),
+            Err(_) => break,
         }
     });
     tx

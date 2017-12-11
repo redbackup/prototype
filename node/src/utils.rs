@@ -37,7 +37,13 @@ impl Into<ChunkElement> for Chunk {
     }
 }
 
-pub fn chunk_to_chunk_contents_element(chunk: Chunk, storage: &Storage) -> Option<ChunkContentElement> {
+/// Convert a Chunk to a ChunkContent Element.
+/// This is no `From` or `Into` implementation, as it requires additional informatormation from
+/// the storage and may fail.
+pub fn chunk_to_chunk_contents_element(
+    chunk: Chunk,
+    storage: &Storage,
+) -> Option<ChunkContentElement> {
     match storage.get(&chunk.chunk_identifier) {
         Err(err) => {
             warn!("Failed to load chunk: {:?}", err.description());

@@ -8,8 +8,7 @@ fn restore_file_content() {
     path.push("documents/redbackup2.txt");
     let content = "redbackup".to_string().into_bytes();
 
-    utils::restore_file_content(&content, &path)
-        .expect("restore_file_content returned an Error");
+    utils::restore_file_content(&content, &path).expect("restore_file_content returned an Error");
 
     assert!(path.is_file());
 
@@ -23,7 +22,6 @@ fn create_folder() {
     let mut path = test_data::prepare_fs_structure("utils_create_folder");
     path.push("movies");
 
-    utils::create_folder(&path)
-        .expect("create_folder returned an Error");
+    utils::create_folder(&path).expect("create_folder returned an Error");
     assert!(path.is_dir());
 }

@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
-use sha2::{Sha256,Digest};
+use sha2::{Sha256, Digest};
 
 quick_error! {
     #[derive(Debug)]
@@ -37,6 +37,8 @@ quick_error! {
     }
 }
 
+/// The data storage, which abstracts the underlying file structure
+/// This implementation simply stores all files in a directory, with the hash as file name.
 #[derive(Debug)]
 pub struct Storage {
     location: PathBuf,
@@ -44,9 +46,7 @@ pub struct Storage {
 
 impl Clone for Storage {
     fn clone(&self) -> Self {
-        Self {
-            location: self.location.clone(),
-        }
+        Self { location: self.location.clone() }
     }
 }
 
@@ -63,6 +63,7 @@ impl Storage {
         Ok(Storage { location: location })
     }
 
+    /// Persist a chunk with identifier and data to disk.
     pub fn persist(&self, identifier: &str, data: &Vec<u8>) -> Result<(), StorageError> {
         let path = self.filename_for_identifier(identifier);
         debug!("Persist chunk with identifer {} at {:?}", identifier, path);
@@ -75,9 +76,14 @@ impl Storage {
         Ok(())
     }
 
+    /// Get the chunk content of specified chunk identifier from storage.
     pub fn get(&self, identifier: &str) -> Result<Vec<u8>, StorageError> {
         let path = self.filename_for_identifier(identifier);
-        debug!("Load contents for chunk with identifer {} at {:?}", identifier, path);
+        debug!(
+            "Load contents for chunk with identifer {} at {:?}",
+            identifier,
+            path
+        );
         if !path.exists() {
             return Err(StorageError::GetNonExistingChunk(identifier.into()));
         }
@@ -87,31 +93,49 @@ impl Storage {
         Ok(buf)
     }
 
+    /// Remove a chunk from the storage
     pub fn delete(&self, identifier: &str) -> Result<(), StorageError> {
         let path = self.filename_for_identifier(identifier);
-        debug!("Delete contents for chunk with identifer {} at {:?}", identifier, path);
+        debug!(
+            "Delete contents for chunk with identifer {} at {:?}",
+            identifier,
+            path
+        );
         if !path.exists() {
             return Err(StorageError::DeleteNonExistingChunk(identifier.into()));
         }
         std::fs::remove_file(path).map_err(|e| StorageError::from(e))
     }
 
+    /// Verify, that hashed chunk content and identifier are identical.
     pub fn verify(&self, identifier: &str) -> Result<(), StorageError> {
         let path = self.filename_for_identifier(identifier);
-        debug!("Loading contents for chunk with identifer {} at {:?}", identifier, path);
+        debug!(
+            "Loading contents for chunk with identifer {} at {:?}",
+            identifier,
+            path
+        );
         if !path.exists() {
             return Err(StorageError::GetNonExistingChunk(identifier.into()));
         }
 
         let mut file_pointer = fs::File::open(path)?;
         let hash = Sha256::digest_reader(&mut file_pointer)?;
-        let actual_identifier: String = hash.iter()
-            .map(|e| format!("{:02x}", e))
-            .fold(String::new(), |mut acc, s: String| { acc.push_str(&s); acc });
+        let actual_identifier: String = hash.iter().map(|e| format!("{:02x}", e)).fold(
+            String::new(),
+            |mut acc,
+             s: String| {
+                acc.push_str(&s);
+                acc
+            },
+        );
 
 
         if actual_identifier != identifier {
-            return Err(StorageError::CorruptedChunk(identifier.into(), actual_identifier));
+            return Err(StorageError::CorruptedChunk(
+                identifier.into(),
+                actual_identifier,
+            ));
         }
         Ok(())
     }

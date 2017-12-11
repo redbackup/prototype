@@ -143,7 +143,10 @@ fn no_root_handles_if_none_present() {
     if let MessageKind::ReturnRootHandles(body) = res_msg.body {
         assert_eq!(body.root_handle_chunks.len(), 0);
     } else {
-        panic!("Expected ReturnRootHandles message! (Got: {:?})", res_msg.body);
+        panic!(
+            "Expected ReturnRootHandles message! (Got: {:?})",
+            res_msg.body
+        );
     }
 }
 
@@ -161,7 +164,10 @@ fn load_all_root_handles() {
         let expected = ExampleChunkContentElement::two();
         assert_eq!(body.root_handle_chunks[0], expected);
     } else {
-        panic!("Expected ReturnRootHandles message! (Got: {:?})", res_msg.body);
+        panic!(
+            "Expected ReturnRootHandles message! (Got: {:?})",
+            res_msg.body
+        );
     }
 }
 
@@ -184,8 +190,12 @@ fn get_chunks_returns_chunks() {
     ServiceUtils::insert_and_verify(&service, ExampleChunkContentElement::two().into());
 
     let req_msg = GetChunks::new(vec![
-        ExampleChunkContentElement::one().chunk_identifier.into(),
-        ExampleChunkContentElement::two().chunk_identifier.into(),
+        ExampleChunkContentElement::one()
+            .chunk_identifier
+            .into(),
+        ExampleChunkContentElement::two()
+            .chunk_identifier
+            .into(),
     ]);
     let res_msg = service.call(req_msg).wait().unwrap();
 

@@ -28,6 +28,7 @@ quick_error! {
     }
 }
 
+/// Creates a chunk index from a specified path.
 pub struct CreateChunkIndex {
     chunk_index: ChunkIndex,
     path: PathBuf,
@@ -37,7 +38,12 @@ pub struct CreateChunkIndex {
 }
 
 impl CreateChunkIndex {
-    pub fn new(chunk_index: &ChunkIndex, path: &PathBuf, exclude: &Vec<Pattern>) -> Result<(), BuilderError> {
+    /// Create a chunk index from a specified path recursively
+    pub fn new(
+        chunk_index: &ChunkIndex,
+        path: &PathBuf,
+        exclude: &Vec<Pattern>,
+    ) -> Result<(), BuilderError> {
         debug!("Create chunk index root folder");
         let mut create_chunk_index = Self {
             chunk_index: chunk_index.clone(),
@@ -47,7 +53,9 @@ impl CreateChunkIndex {
             exclude: exclude.clone(),
         };
 
-        let parent_folder = create_chunk_index.add_folder(path).map_err(|e| BuilderError::from(e))?;
+        let parent_folder = create_chunk_index.add_folder(path).map_err(
+            |e| BuilderError::from(e),
+        )?;
         create_chunk_index.parent_folder = Some(parent_folder);
 
         debug!("Start building chunk index");
@@ -56,6 +64,7 @@ impl CreateChunkIndex {
         result
     }
 
+    /// The actual recursive building process. This function is called by `Self::new(...)`.
     fn build(self) -> Result<(), BuilderError> {
         debug!("Read content of path {:?}", self.path);
         for entry in self.path.read_dir()? {
@@ -64,16 +73,20 @@ impl CreateChunkIndex {
             let local_path = path.strip_prefix(&self.root_path).unwrap();
 
             if let Some(pattern) = self.exclude.iter().find(|e| e.matches_path(&local_path)) {
-                info!("Skipped {:?} because of glob pattern {})", &local_path, pattern.as_str());
+                info!(
+                    "Skipped {:?} because of glob pattern {})",
+                    &local_path,
+                    pattern.as_str()
+                );
                 continue;
             }
 
             match entry.file_type() {
                 Ok(ref filetype) if filetype.is_file() => {
                     self.add_file(entry)?;
-                },
+                }
 
-                Ok(ref filetype) if filetype.is_dir()  => {
+                Ok(ref filetype) if filetype.is_dir() => {
                     let folder = self.add_folder(&path)?;
                     Self {
                         chunk_index: self.chunk_index.clone(),
@@ -82,17 +95,23 @@ impl CreateChunkIndex {
                         parent_folder: Some(folder),
                         exclude: self.exclude.clone(),
                     }.build()?;
-                },
+                }
 
-                Ok(filetype) => warn!("The file type {:?} of file {:?} is not implemented",
-                                       filetype, entry.file_name()),
-                _            => error!("Could not read file type of {:?}", entry.file_name()),
+                Ok(filetype) => {
+                    warn!(
+                        "The file type {:?} of file {:?} is not implemented",
+                        filetype,
+                        entry.file_name()
+                    )
+                }
+                _ => error!("Could not read file type of {:?}", entry.file_name()),
             }
         }
         Ok(())
     }
 
-    fn add_file(&self, file_entry: DirEntry) -> Result<File,BuilderError> {
+    /// Read metadata of a file and add it to the chunk index.
+    fn add_file(&self, file_entry: DirEntry) -> Result<File, BuilderError> {
         let metadata = file_entry.metadata()?;
         let modified = metadata.modified()?;
         let modified = DateTime::<Local>::from(modified);
@@ -107,18 +126,21 @@ impl CreateChunkIndex {
         let chunk_identifier = create_utils::file_hash(&file_entry.path())?;
 
         debug!("Add chunk {} to chunk index", chunk_identifier);
-        self.chunk_index.add_chunk(NewChunk{
+        self.chunk_index.add_chunk(NewChunk {
             chunk_identifier,
             file: file.id,
-            predecessor: None
+            predecessor: None,
         })?;
 
         Ok(file)
     }
 
+    /// Read metadata of a folder and add it to the chunk index.
     fn add_folder(&self, folder_path: &PathBuf) -> Result<Folder, BuilderError> {
-        let name = OsString::from(folder_path.file_name()
-           .ok_or(io::Error::new(io::ErrorKind::NotFound ,"No folder in path given"))?).into_string()?;
+        let name = OsString::from(folder_path.file_name().ok_or(io::Error::new(
+            io::ErrorKind::NotFound,
+            "No folder in path given",
+        ))?).into_string()?;
 
         let parent_folder = match self.parent_folder {
             Some(ref folder) => Some(folder.id),
@@ -126,6 +148,11 @@ impl CreateChunkIndex {
         };
 
         debug!("Add folder {} to chunk index", name);
-        self.chunk_index.add_folder(NewFolder { name, parent_folder }).map_err(|e| BuilderError::from(e))
+        self.chunk_index
+            .add_folder(NewFolder {
+                name,
+                parent_folder,
+            })
+            .map_err(|e| BuilderError::from(e))
     }
 }

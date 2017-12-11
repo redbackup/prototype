@@ -8,7 +8,7 @@ use std;
 
 use dns_lookup::lookup_host;
 
-
+/// Configuration of a node
 pub struct Config {
     pub addr: SocketAddr,
     pub storage_location: PathBuf,
@@ -58,24 +58,38 @@ impl Config {
 
         let db_location = db_location.to_owned();
 
+        // Collect and parse all specified node hostnames
         let mut known_nodes = Vec::new();
         for known_node in known_nodes_strs {
-            let mut split : Vec<_> = known_node.rsplitn(2, ':').collect();
+            let mut split: Vec<_> = known_node.rsplitn(2, ':').collect();
             split.reverse();
-            let ips = lookup_host(split[0]).map_err(|e| ParseError::InvalidKnownNode(known_node.clone(), e))?;
+            let ips = lookup_host(split[0]).map_err(|e| {
+                ParseError::InvalidKnownNode(known_node.clone(), e)
+            })?;
 
             // For simplicity, we only support ipv4 for now...
-            let ips : Vec<_> = ips.into_iter().filter(|ip| match ip {&IpAddr::V4(_) => true, _ => false}).collect();
+            let ips: Vec<_> = ips.into_iter()
+                .filter(|ip| match ip {
+                    &IpAddr::V4(_) => true,
+                    _ => false,
+                })
+                .collect();
 
             if ips.len() == 0 {
-                return Err(ParseError::NoIPsFound(format!("No IPv4 address found associated with the given hostname {}", known_node.clone())))
-            }else if ips.len() > 1 {
-                warn!("Found more than one possible IP for the given host. Will use the first one...")
+                return Err(ParseError::NoIPsFound(format!(
+                    "No IPv4 address found associated with the given hostname {}",
+                    known_node.clone()
+                )));
+            } else if ips.len() > 1 {
+                warn!(
+                    "Found more than one possible IP for the given host. Will use the first one..."
+                )
             }
 
-            let port : u16 = if let Some(portstr) = split.get(1) {
+            // Get port of node or use the default, 8080
+            let port: u16 = if let Some(portstr) = split.get(1) {
                 portstr.parse().map_err(|e| ParseError::InvalidPort(e))?
-            } else{
+            } else {
                 8080
             };
             known_nodes.push(SocketAddr::new(ips[0], port));

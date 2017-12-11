@@ -12,6 +12,7 @@ use redbackup_protocol::message::*;
 
 use utils;
 
+/// The service that provides all the node functionality.
 pub struct NodeService {
     pub cpu_pool: CpuPool,
     pub chunk_table: ChunkTable,
@@ -46,8 +47,10 @@ impl NodeService {
         }
     }
 
+    /// Handle unknown messages that were received.
     fn handle_unknown(&self) -> Box<Future<Item = Message, Error = io::Error>> {
         error!("Received unknown message kind");
+        // Create future
         Box::new(future::ok(
             InvalidRequest::new("Node cannot handle this message kind"),
         ))
@@ -55,6 +58,7 @@ impl NodeService {
 
     fn handle_designation(&self) -> Box<Future<Item = Message, Error = io::Error>> {
         info!("Grant designation");
+        // Create future
         Box::new(future::ok(ReturnDesignation::new(true)))
     }
 
@@ -64,6 +68,8 @@ impl NodeService {
     ) -> Box<Future<Item = Message, Error = io::Error>> {
         info!("Return chunk states");
         let chunk_table = self.chunk_table.clone();
+
+        // Create future
         Box::new(self.cpu_pool.spawn_fn(move || -> Result<_, io::Error> {
             let db_chunks = body.chunks.into_iter().map(Chunk::from).collect();
             debug!("Request state of chunks {:?} from chunk table", db_chunks);
@@ -89,6 +95,7 @@ impl NodeService {
         let chunk_table = self.chunk_table.clone();
         let storage = self.storage.clone();
 
+        // Create future
         Box::new(self.cpu_pool.spawn_fn(move || -> Result<_, io::Error> {
             let mut results = Vec::new();
 
@@ -99,12 +106,13 @@ impl NodeService {
                         &chunk_content.chunk_identifier
                     );
                     results.push(chunk);
-                    continue
+                    continue;
                 }
                 if let Err(err) = storage.persist(
                     &chunk_content.chunk_identifier,
                     &chunk_content.chunk_content,
-                ) {
+                )
+                {
                     error!("Failed to persist new chunk: {}", err);
                     continue;
                 }
@@ -138,6 +146,7 @@ impl NodeService {
         let chunk_table = self.chunk_table.clone();
         let storage = self.storage.clone();
 
+        // Create future
         Box::new(self.cpu_pool.spawn_fn(move || -> Result<_, io::Error> {
             debug!("Get root handles from chunk table");
             match chunk_table.get_root_handles() {
@@ -164,7 +173,9 @@ impl NodeService {
         let chunk_table = self.chunk_table.clone();
         let storage = self.storage.clone();
 
+        // Create future
         Box::new(self.cpu_pool.spawn_fn(move || -> Result<_, io::Error> {
+            // Collect chunks from the chunk index
             let mut results = Vec::new();
             for chunk_identifier in body.chunk_identifiers {
                 debug!("Get chunk {} from chunk table", chunk_identifier);

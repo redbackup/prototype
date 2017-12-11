@@ -23,6 +23,7 @@ use super::Progress;
 use super::config::Config;
 use super::chunk_index::ChunkIndex;
 
+/// Implementation of the restore process
 pub struct RestoreBackupContext {
     config: Config,
     restore_config: RestoreBackupConfig,
@@ -36,7 +37,7 @@ impl RestoreBackupContext {
     pub fn new(
         config: Config,
         restore_config: RestoreBackupConfig,
-        progress_sender : Sender<Progress>
+        progress_sender: Sender<Progress>,
     ) -> Result<Self, RestoreBackupError> {
         let event_loop = tokio_core::reactor::Core::new()?;
         let handle = event_loop.handle();
@@ -66,10 +67,14 @@ impl RestoreBackupContext {
         Ok(())
     }
 
-
+    /// Reconstruct the chunk index of the specified backup
     fn restore_chunk_index(&mut self) -> Result<ChunkIndex, RestoreBackupError> {
         let chunk_identifier = &self.restore_config.backup_id;
-        debug!("Request chunk index {} from node at {}", chunk_identifier, self.config.addr);
+        debug!(
+            "Request chunk index {} from node at {}",
+            chunk_identifier,
+            self.config.addr
+        );
         let message = GetChunks::new(vec![chunk_identifier.clone()]);
         let request = TcpClient::new(RedClientProto)
             .connect(&self.config.addr, &self.handle.clone())
@@ -93,12 +98,16 @@ impl RestoreBackupContext {
         Ok(ChunkIndex::new(path, now)?)
     }
 
+    /// Recreate the whole folder structure of the backup recursively
     fn restore_folder_structure(
         root_folder: &PathBuf,
         chunk_index: &ChunkIndex,
         parent_folder_id: Option<i32>,
     ) -> Result<(), RestoreBackupError> {
-        debug!("Request folder by parent id (if any) {:?} from chunk index", parent_folder_id);
+        debug!(
+            "Request folder by parent id (if any) {:?} from chunk index",
+            parent_folder_id
+        );
         let folders = chunk_index.get_folders_by_parent(parent_folder_id)?;
         let path = root_folder;
 
@@ -112,6 +121,7 @@ impl RestoreBackupContext {
         Ok(())
     }
 
+    /// Reassemble files from all chunks in the chunk index
     fn restore_chunks(&mut self, chunk_index: &ChunkIndex) -> Result<(), RestoreBackupError> {
         let chunks = chunk_index.get_all_chunks()?;
         let mut progress = Progress::new(self.progress_sender.clone(), chunks.len());
@@ -124,12 +134,13 @@ impl RestoreBackupContext {
             path.push(chunk_index.get_file_path(chunk.file)?);
 
             utils::restore_file_content(&chunk_content.chunk_content.as_slice(), &path)?;
-            debug!("Restored chunk {} to {:?}",chunk.chunk_identifier, path);
+            debug!("Restored chunk {} to {:?}", chunk.chunk_identifier, path);
             progress.increment();
         }
         Ok(())
     }
 
+    /// Query a chunk from the node by chunk identifier
     fn request_chunk(
         &mut self,
         chunk_identifier: String,

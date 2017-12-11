@@ -41,7 +41,7 @@ use config::Config;
 use service::NodeService;
 use chunk_table::ChunkTable;
 
-
+/// Run the actual node application.
 pub fn run(config: Config) {
     let config = config;
 

@@ -40,21 +40,20 @@ quick_error! {
     }
 }
 
+/// Represents the chunk table, where the node persists information about chunks it holds.
 pub struct ChunkTable {
     db_pool: Pool<ConnectionManager<SqliteConnection>>,
 }
 
 impl Clone for ChunkTable {
     fn clone(&self) -> Self {
-        ChunkTable {
-            db_pool: self.db_pool.clone(),
-        }
+        ChunkTable { db_pool: self.db_pool.clone() }
     }
 }
 
 impl ChunkTable {
     pub fn new(database_url: &str) -> Result<Self, DatabaseError> {
-        debug!("Connect to chunk table database {}", database_url); 
+        debug!("Connect to chunk table database {}", database_url);
         {
             let config = Config::default();
             let manager = ConnectionManager::<SqliteConnection>::new(database_url);
@@ -73,7 +72,9 @@ impl ChunkTable {
         Ok(ChunkTable { db_pool })
     }
 
-    pub fn get_db_connection(&self) -> Result<PooledConnection<ConnectionManager<SqliteConnection>>, DatabaseError> {
+    pub fn get_db_connection(
+        &self,
+    ) -> Result<PooledConnection<ConnectionManager<SqliteConnection>>, DatabaseError> {
         let conn = self.db_pool.get()?;
         // Make sure the database is opened in Write-Ahead-Log mode.
         // Note that we currently have no way to detect if this failed.
@@ -84,7 +85,6 @@ impl ChunkTable {
         Ok(conn)
     }
 
-    #[allow(dead_code)]
     pub fn get_chunk(&self, chunk_identifier: &str) -> Result<Chunk, DatabaseError> {
         let conn = self.get_db_connection()?;
         chunks::dsl::chunks
@@ -101,14 +101,6 @@ impl ChunkTable {
             .map_err(|e| DatabaseError::from(e))
     }
 
-    #[allow(dead_code)]
-    pub fn remove_chunk(&self, chunk_identifier: &str) -> Result<usize, DatabaseError> {
-        let conn = self.get_db_connection()?;
-        diesel::delete(chunks::dsl::chunks.find(chunk_identifier))
-            .execute(&*conn)
-            .map_err(|e| DatabaseError::from(e))
-    }
-
     pub fn load_random_chunks(&self, number_of_chunks: i64) -> Result<Vec<Chunk>, DatabaseError> {
         let conn = self.get_db_connection()?;
         chunks::dsl::chunks
@@ -118,14 +110,16 @@ impl ChunkTable {
             .map_err(|e| DatabaseError::from(e))
     }
 
+    /// Update a chunk in the database (postpone the expiration date if appropriate).
     pub fn update_chunk(&self, chunky: &Chunk) -> Result<Chunk, DatabaseError> {
         let conn = self.get_db_connection()?;
         trace!("Update chunk {} as transaction", chunky.chunk_identifier);
         conn.transaction::<_, DatabaseError, _>(|| {
-            let db_chunk: Chunk = chunks::dsl::chunks
-                .find(&chunky.chunk_identifier)
-                .first(&*conn)?;
+            let db_chunk: Chunk = chunks::dsl::chunks.find(&chunky.chunk_identifier).first(
+                &*conn,
+            )?;
 
+            // Evaluate if there are changes that require a update query
             let mut changed = false;
             let mut expiration_date = db_chunk.expiration_date;
 
@@ -139,7 +133,10 @@ impl ChunkTable {
             changed = changed || root_handle != db_chunk.root_handle;
 
             if changed {
-                trace!("Write updated chunk {} to database", chunky.chunk_identifier);
+                trace!(
+                    "Write updated chunk {} to database",
+                    chunky.chunk_identifier
+                );
                 diesel::update(chunks::dsl::chunks.find(&chunky.chunk_identifier))
                     .set((
                         chunks::dsl::expiration_date.eq(expiration_date),
@@ -147,6 +144,7 @@ impl ChunkTable {
                     ))
                     .execute(&*conn)?;
 
+                // Get updated chunk, as SQLite does not support RETURNING clauses.
                 chunks::dsl::chunks
                     .find(&chunky.chunk_identifier)
                     .first::<Chunk>(&*conn)
@@ -156,6 +154,8 @@ impl ChunkTable {
             }
         })
     }
+
+    /// Update multiple chunks and return them as stored in the database.
     pub fn get_and_update_chunks(&self, chunks: Vec<Chunk>) -> Result<Vec<Chunk>, DatabaseError> {
         let mut results: Vec<Chunk> = Vec::new();
         for chunk in chunks {
@@ -169,9 +169,9 @@ impl ChunkTable {
     pub fn add_chunk(&self, new_chunk: &Chunk) -> Result<Chunk, DatabaseError> {
         let conn = self.get_db_connection()?;
 
-        diesel::insert(new_chunk)
-            .into(chunks::table)
-            .execute(&*conn)?;
+        diesel::insert(new_chunk).into(chunks::table).execute(
+            &*conn,
+        )?;
 
         chunks::dsl::chunks
             .find(&new_chunk.chunk_identifier)

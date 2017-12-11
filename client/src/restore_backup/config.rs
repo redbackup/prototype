@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::str;
 
+/// Parameters that are required for a restore.
 pub struct RestoreBackupConfig {
     pub backup_id: String,
     pub restore_dir: PathBuf,

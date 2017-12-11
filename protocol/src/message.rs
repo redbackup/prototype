@@ -1,13 +1,17 @@
+//! Implementations of the messages and message types, according to the speicifcation.
+//! Small adjustments were made, to fit the reduced prototype feature set.
+
 use chrono::{DateTime, Utc};
 use serde_bytes;
 
+/// A message, that is sent over the network
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Message {
     pub timestamp: DateTime<Utc>,
     pub body: MessageKind,
 }
 
-
+/// The kind of a message
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub enum MessageKind {
     GetDesignation(GetDesignation),
@@ -65,9 +69,7 @@ impl InvalidRequest {
     pub fn new(reason: &str) -> Message {
         Message {
             timestamp: Utc::now(),
-            body: MessageKind::InvalidRequest(InvalidRequest {
-                reason: reason.into(),
-            }),
+            body: MessageKind::InvalidRequest(InvalidRequest { reason: reason.into() }),
         }
     }
 }
@@ -81,9 +83,7 @@ impl InternalError {
     pub fn new(reason: &str) -> Message {
         Message {
             timestamp: Utc::now(),
-            body: MessageKind::InternalError(InternalError {
-                reason: reason.into(),
-            }),
+            body: MessageKind::InternalError(InternalError { reason: reason.into() }),
         }
     }
 }
@@ -124,9 +124,11 @@ impl ReturnChunkStates {
     }
 }
 
+/// A chunk content element according to specification.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct ChunkContentElement {
-    #[serde(with = "serde_bytes")] pub chunk_content: Vec<u8>,
+    #[serde(with = "serde_bytes")]
+    pub chunk_content: Vec<u8>,
     pub chunk_identifier: String,
     pub expiration_date: DateTime<Utc>,
     pub root_handle: bool,

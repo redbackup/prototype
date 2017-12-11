@@ -453,18 +453,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "redbackup-management"
-version = "0.1.0"
-
-[[package]]
-name = "redbackup-management-cli"
-version = "0.1.0"
-dependencies = [
- "clap 2.27.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "redbackup-management 0.1.0",
-]
-
-[[package]]
 name = "redbackup-node"
 version = "0.1.0"
 dependencies = [

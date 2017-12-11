@@ -21,7 +21,10 @@ impl ServiceUtils {
 
     pub fn insert_and_verify(service: &NodeService, element: ChunkContentElement) {
         let chunk_table = service.chunk_table.clone();
-        service.storage.persist(&element.chunk_identifier, &element.chunk_content).unwrap();
+        service
+            .storage
+            .persist(&element.chunk_identifier, &element.chunk_content)
+            .unwrap();
         let new_chunk = element.into();
         assert_eq!(new_chunk, chunk_table.add_chunk(&new_chunk).unwrap());
     }
@@ -32,5 +35,4 @@ impl ServiceUtils {
         fs::remove_dir_all(&storage_url);
         Storage::new(PathBuf::from(&storage_url).to_owned()).unwrap()
     }
-
 }
