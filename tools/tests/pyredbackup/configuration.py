@@ -3,14 +3,15 @@ This module contains different configurations for possible integration tests
 """
 import logging
 from abc import ABC, abstractmethod
+from typing import List
 
 import docker
 from docker.errors import ImageNotFound
 from docker.models.networks import Network
-from typing import List
 
-from pyredbackup.node import Node
 from pyredbackup.client import Client
+from pyredbackup.helpers import check_log_for_errors
+from pyredbackup.node import Node
 
 LOG = logging.getLogger(__name__)
 
@@ -41,7 +42,6 @@ class BaseConfiguration(ABC):
         pass
 
     def _check_for_images(self) -> None:
-        # TODO: build images here - including `cargo build --release`
         try:
             node = self.docker.images.get(f'{Node.IMAGE}:{self.version}')
             LOG.debug(f"Node image {node.tags} exists...")
@@ -81,11 +81,14 @@ class BaseConfiguration(ABC):
 
     def stop_nodes(self) -> None:
         """
-        This is just a convenience method to call `stop` on all nodes.
+        Kill all nodes and check the logs for errors.
         """
         LOG.info(f"Stopping nodes...")
         for node in self.nodes:
-            node.stop()
+            LOG.debug(f"Stopping node {node.name}")
+            node.container.kill()
+        for node in self.nodes:
+            check_log_for_errors(node.container)
 
 
 class MediumConfiguration(BaseConfiguration):
