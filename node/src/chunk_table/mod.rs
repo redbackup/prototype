@@ -19,18 +19,22 @@ quick_error! {
     pub enum DatabaseError {
         PoolInitializationError(err: r2d2::InitializationError) {
             from()
+            display("Pool initialization failed ({})", err)
             cause(err)
         }
         ConnectionError(err: r2d2::GetTimeout) {
             from()
+            display("Connection error ({})", err)
             cause(err)
         }
         QueryError(err: diesel::result::Error) {
             from()
+            display("Query Error ({})", err)
             cause(err)
         }
         MigrationError(err: diesel::migrations::RunMigrationsError) {
             from()
+            display("Migration error ({})", err)
             cause(err)
         }
     }
@@ -50,13 +54,20 @@ impl Clone for ChunkTable {
 
 impl ChunkTable {
     pub fn new(database_url: &str) -> Result<Self, DatabaseError> {
-        debug!("Connect to chunk table database {}", database_url);
+        debug!("Connect to chunk table database {}", database_url); 
+        {
+            let config = Config::default();
+            let manager = ConnectionManager::<SqliteConnection>::new(database_url);
+            let first_db_pool = Pool::new(config, manager)?;
+            let conn = first_db_pool.get()?;
+            debug!("Run chunk table database migrations");
+            embedded_migrations::run(&*conn)?;
+
+        }
+
         let config = Config::default();
         let manager = ConnectionManager::<SqliteConnection>::new(database_url);
         let db_pool = Pool::new(config, manager)?;
-        let conn = db_pool.get()?;
-        debug!("Run chunk table database migrations");
-        embedded_migrations::run(&*conn)?;
 
         debug!("Finished creating chunk table");
         Ok(ChunkTable { db_pool })
@@ -67,6 +78,9 @@ impl ChunkTable {
         // Make sure the database is opened in Write-Ahead-Log mode.
         // Note that we currently have no way to detect if this failed.
         conn.execute("PRAGMA journal_mode=WAL;")?;
+        conn.execute("PRAGMA synchronous=0;")?;
+        conn.execute("PRAGMA wal_autocheckpoint==0;")?;
+        conn.execute("PRAGMA wal_checkpoint(PASSIVE);")?;
         Ok(conn)
     }
 

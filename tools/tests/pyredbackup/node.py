@@ -6,10 +6,7 @@ import logging
 from typing import List
 
 from docker.client import DockerClient
-from docker.models.containers import Container
 from docker.models.networks import Network
-
-from pyredbackup.helpers import check_log_for_errors
 
 LOG = logging.getLogger(__name__)
 
@@ -30,9 +27,8 @@ class Node:
         self.docker = docker
         self.version = version
         self._known_nodes = []  # type: List['Node']
-        self.container = None  # type: Container
+        self.container = None
         LOG.debug(f"Setting up node {self.name}")
-        # TODO: allow `put_archive(path, data)` and `get_archive(path)`
 
     def clean_up(self) -> None:
         """
@@ -81,11 +77,3 @@ class Node:
         command = command + '"'
         LOG.debug(f'command for {self.name} is {command}')
         return command
-
-    def stop(self) -> None:
-        """
-        (forcefully) stops this node
-        """
-        LOG.debug(f"Stopping node {self.name}")
-        self.container.stop(timeout=2)
-        check_log_for_errors(self.container)
